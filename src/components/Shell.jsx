@@ -1,13 +1,16 @@
 import { useLayoutEffect, useRef, useState, useEffect } from 'preact/hooks';
 import { Link, usePath, navigate } from '../lib/router.jsx';
 import { session, logout } from '../lib/session.js';
-import { useStore } from '../lib/store.js';
+import { useStore, createStore } from '../lib/store.js';
 import { outbox } from '../lib/outbox.js';
 import { gsap, reducedMotion, press } from '../lib/motion.js';
 import { haptic } from '../lib/native.js';
 import { Icon } from './Icon.jsx';
 import { Avatar } from './ui.jsx';
 import { useUnread } from '../screens/shared/notifications.js';
+
+// Opciones del encabezado según el menú de cada rol
+const shellOptions = createStore({ profileInHeader: false });
 
 // Acá está la estructura de la app: menú lateral en escritorio y barra inferior en el celular
 const ROLE_LABEL = { super_admin: 'Súper admin', admin: 'Administrador', cobrador: 'Cobrador' };
@@ -35,7 +38,9 @@ function Fab({ fab }) {
   );
 }
 
-function TabBar({ nav, fab, path }) {
+function TabBar({ nav: all, fab, path }) {
+  // En el celular se muestran máximo 4 secciones (2 a cada lado) para que el botón central quede centrado
+  const nav = all.filter((n) => n.mobile !== false);
   const half = Math.ceil(nav.length / 2);
   const item = (n) => (
     <Link href={n.href} class={`tab ${isActive(path, n.href) ? 'is-active' : ''}`} aria-current={isActive(path, n.href) ? 'page' : undefined}>
@@ -135,6 +140,8 @@ function ConnectionChip() {
 
 export function AppShell({ nav, fab, children }) {
   const path = usePath();
+  const hiddenProfile = nav.some((n) => n.href === '/perfil' && n.mobile === false);
+  if (shellOptions.get().profileInHeader !== hiddenProfile) shellOptions.set({ profileInHeader: hiddenProfile });
   const ctx = useStore(session, (s) => s.ctx);
   const main = useRef(null);
 
@@ -168,6 +175,8 @@ export function AppShell({ nav, fab, children }) {
 export function PageHeader({ eyebrow, title, back, actions }) {
   const unread = useUnread();
   const path = usePath();
+  const ctx = useStore(session, (s) => s.ctx);
+  const profileInHeader = useStore(shellOptions, (s) => s.profileInHeader);
   return (
     <header class="page-head" data-enter>
       <div class="page-head-left">
@@ -187,6 +196,11 @@ export function PageHeader({ eyebrow, title, back, actions }) {
           <Link href="/notificaciones" class="icon-btn icon-btn-solid only-mobile" aria-label="Notificaciones">
             <Icon name="bell" size={20} />
             {unread > 0 && <span class="dot-badge">{unread > 9 ? '9+' : unread}</span>}
+          </Link>
+        )}
+        {profileInHeader && path !== '/perfil' && (
+          <Link href="/perfil" class="header-avatar only-mobile" aria-label="Perfil">
+            <Avatar name={ctx?.full_name} tone="lime" size={44} />
           </Link>
         )}
       </div>

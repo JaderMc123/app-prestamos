@@ -14,7 +14,7 @@ const NAV = [
   { href: '/cobradores', label: 'Cobradores', icon: 'users' },
   { href: '/clientes', label: 'Clientes', icon: 'pin' },
   { href: '/ajustes', label: 'Ajustes', icon: 'settings' },
-  { href: '/perfil', label: 'Perfil', icon: 'user' }
+  { href: '/perfil', label: 'Perfil', icon: 'user', mobile: false }
 ];
 
 const ROUTES = [

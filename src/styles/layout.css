@@ -407,3 +407,4 @@
   .clients-map { position: sticky; top: 32px; }
   .clients-map .map-box { height: calc(100dvh - 140px) !important; }
 }
+.header-avatar { display: inline-flex; border-radius: 50%; }
