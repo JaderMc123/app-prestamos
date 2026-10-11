@@ -7,7 +7,8 @@ export default defineConfig({
     preact(),
     // Acá se configura la app instalable (PWA) y la caché para trabajar sin señal
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
+      injectRegister: false,
       includeAssets: ['fonts/manrope.woff', 'icon.svg'],
       manifest: {
         name: 'Cobros',
@@ -26,6 +27,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,woff}'],
         navigateFallback: '/index.html',
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.hostname.endsWith('.supabase.co') && url.pathname.startsWith('/rest/'),
