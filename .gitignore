@@ -1,0 +1,28 @@
+# Dependencias y compilación
+node_modules/
+dist/
+dev-dist/
+
+# Variables de entorno
+.env
+.env.*
+!.env.example
+
+# Proyectos nativos generados por Capacitor
+android/
+ios/
+
+# Herramientas de asistentes de IA (no se usan en la app)
+.claude/
+.agents/
+.cursor/
+CLAUDE.md
+AGENTS.md
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+npm-debug.log*
