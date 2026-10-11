@@ -36,9 +36,11 @@ export async function login(code, username, password) {
     localStorage.setItem(LAST_CODE, code.trim().toLowerCase());
   } catch {}
   await refreshContext();
+  import('./push.js').then((m) => m.resyncPush());
 }
 
 export async function logout() {
+  await import('./push.js').then((m) => m.forgetPush()).catch(() => {});
   await supabase.auth.signOut();
   session.set({ status: 'out', user: null, ctx: null });
 }

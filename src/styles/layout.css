@@ -408,3 +408,41 @@
   .clients-map .map-box { height: calc(100dvh - 140px) !important; }
 }
 .header-avatar { display: inline-flex; border-radius: 50%; }
+
+/* Ayuda debajo de una fila (ej. cómo activar notificaciones) */
+.row-help { padding: 0 12px 12px 66px; }
+.row-help p { font-size: var(--t-sm); line-height: 1.45; }
+
+/* Papelería: etiqueta en la ruta y tarjeta en el panel de cobro */
+.route-tag { flex-shrink: 0; padding: 1px 8px; border-radius: var(--r-pill); background: rgba(180, 176, 255, 0.22); color: #4b45b8; font-size: 11px; font-weight: 700; }
+.paperwork-card { display: grid; gap: 4px; justify-items: center; text-align: center; padding: 18px; border-radius: var(--r-lg); background: var(--s2); }
+.paperwork-card b { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; color: var(--lime); }
+
+/* Importar préstamos desde Excel */
+.import-steps { display: grid; gap: 16px; }
+.drop-zone { position: relative; display: grid; justify-items: center; gap: 6px; padding: 26px 16px; border-radius: var(--r-md); border: 1.5px dashed #3a3a3a; background: var(--s2); text-align: center; cursor: pointer; transition: border-color 0.2s, background-color 0.2s; }
+.drop-zone:hover { border-color: var(--lime); }
+.drop-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.drop-zone .icon { color: var(--lime); }
+.drop-zone b { font-weight: 700; word-break: break-all; }
+.drop-zone.is-busy { pointer-events: none; opacity: 0.8; }
+.import-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 16px; border-radius: var(--r-md); background: var(--lime); color: var(--lime-ink); }
+.import-summary div { display: grid; gap: 2px; min-width: 0; }
+.import-summary span { font-size: var(--t-xs); font-weight: 600; opacity: 0.75; }
+.import-summary b { font-size: var(--t-lg); overflow: hidden; text-overflow: ellipsis; }
+.import-summary .is-bad b { color: #b3261e; }
+.import-row { cursor: default; }
+.import-line { flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--paper-2); color: var(--paper-tx2); font-size: 12px; font-weight: 700; }
+.import-line.is-bad { background: rgba(255, 110, 90, 0.18); color: #b3261e; }
+.import-sub { white-space: normal; }
+.import-sub span { overflow: hidden; text-overflow: ellipsis; }
+.import-error { color: #b3261e; font-weight: 600; }
+.import-balance { color: var(--paper-tx2); }
+.import-actions { display: grid; gap: 10px; }
+@media (min-width: 1024px) {
+  .import-steps { grid-template-columns: 1fr 1fr; }
+  .import-actions { max-width: 420px; margin-left: auto; }
+}
+
+/* Invitación a activar notificaciones en el teléfono */
+.push-invite { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: var(--r-lg); background: var(--s1); border: 1px solid rgba(184, 242, 92, 0.25); }

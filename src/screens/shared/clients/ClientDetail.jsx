@@ -11,7 +11,7 @@ import { Sheet } from '../../../components/Sheet.jsx';
 import { Button, Field, StatusDot } from '../../../components/ui.jsx';
 import { Icon } from '../../../components/Icon.jsx';
 import { toast } from '../../../components/Toast.jsx';
-import { CLIENT_STATE, findByDocument } from './data.js';
+import { CLIENT_STATE, FREQUENCIES, findByDocument } from './data.js';
 import { LoanForm } from './LoanForm.jsx';
 
 // Ficha del cliente: datos, cómo llegar, préstamos, fotos y "no prestar más"
@@ -121,7 +121,7 @@ export function ClientDetail({ client, blockedByMe, onClose, onEdit }) {
               <h3>Préstamos activos</h3>
               {client.activeLoans.map((l) => (
                 <div class="row">
-                  <div class="row-main"><span class="row-title num">{cop(l.principal)}</span><span class="row-sub">Cuota {cop(l.daily_payment)}, vence {fmtDate(l.due_date)}</span></div>
+                  <div class="row-main"><span class="row-title num">{cop(l.principal)}</span><span class="row-sub">{FREQUENCIES[l.frequency || 'diario'].cuota} {cop(l.daily_payment)}, vence {fmtDate(l.due_date)}{l.paperwork_status === 'pendiente' ? `, papelería ${cop(l.paperwork_fee)} por cobrar` : ''}</span></div>
                   <span class={`tag ${l.status === 'en_mora' ? 'tag-coral' : 'tag-lime'}`}>{l.status === 'en_mora' ? 'En mora' : 'Activo'}</span>
                 </div>
               ))}

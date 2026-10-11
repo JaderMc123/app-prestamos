@@ -9,7 +9,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       injectRegister: false,
-      includeAssets: ['fonts/manrope.woff', 'icon.svg'],
+      includeAssets: ['fonts/manrope.woff', 'icon.svg', 'icon-192.png', 'icon-512.png', 'badge-72.png', 'apple-touch-icon.png', 'push-sw.js'],
       manifest: {
         name: 'Cobros',
         short_name: 'Cobros',
@@ -21,11 +21,15 @@ export default defineConfig({
         orientation: 'portrait',
         start_url: '/',
         icons: [
-          { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,woff}'],
+        globPatterns: ['**/*.{js,css,html,svg,woff,png}'],
+        // Acá se agrega la recepción de notificaciones push al service worker
+        importScripts: ['push-sw.js'],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
         runtimeCaching: [

@@ -15,6 +15,7 @@ export function RouteRow({ item, onClick }) {
         <span class="route-sub">
           <StatusDot tone={s.tone} />
           <span class="route-state">{s.label}</span>
+          {item.paperwork > 0 && <span class="route-tag">Papelería</span>}
           {item.client.address ? <span class="route-addr">{item.client.address}</span> : null}
         </span>
       </div>

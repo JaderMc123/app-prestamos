@@ -112,6 +112,65 @@ function MoraSection({ settings, orgId }) {
   );
 }
 
+// Acá el admin define el interés de los préstamos y qué frecuencias de cobro puede usar el cobrador
+const FREQ_OPTIONS = [
+  { value: 'diario', label: 'Diario', hint: 'Según los días de cobro de cada cobrador.' },
+  { value: 'quincenal', label: 'Quincenal', hint: 'Los días 15 y 30 de cada mes.' },
+  { value: 'mensual', label: 'Mensual', hint: 'El mismo día de cada mes.' }
+];
+
+function LoanSection({ settings, orgId }) {
+  const [rate, setRate] = useState(String(Number(settings.default_interest_rate ?? 20)));
+  const [freqs, setFreqs] = useState(settings.frequencies?.length ? settings.frequencies : ['diario']);
+  const [busy, setBusy] = useState(false);
+  const pct = Number(String(rate).replace(',', '.'));
+
+  const toggle = (f, on) => {
+    const next = on ? [...new Set([...freqs, f])] : freqs.filter((x) => x !== f);
+    if (!next.length) return toast('Debe quedar al menos una frecuencia activa.', 'error');
+    setFreqs(FREQ_OPTIONS.map((o) => o.value).filter((v) => next.includes(v)));
+  };
+
+  const save = async () => {
+    if (!guard()) return;
+    if (!(pct >= 0) || pct > 1000) return toast('Escribe un interés válido.', 'error');
+    setBusy(true);
+    try {
+      await q(supabase.from('settings').update({ default_interest_rate: pct, frequencies: freqs }).eq('organization_id', orgId));
+      toast('Configuración de préstamos guardada');
+      invalidate('admin:settings');
+      invalidate('settings:loan:');
+    } catch (err) {
+      toast(message(err), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section class="settings-card" data-enter>
+      <header>
+        <span class="row-icon tone-bg-lime"><Icon name="cash" size={19} /></span>
+        <div>
+          <h2>Préstamos</h2>
+          <p class="muted">El interés lo pones tú; el cobrador no lo puede cambiar.</p>
+        </div>
+      </header>
+      <Field label="Interés de los préstamos" inputMode="decimal" value={rate} onInput={(e) => setRate(e.currentTarget.value)} suffix={<span class="field-affix">%</span>} hint="Es el mismo porcentaje sin importar si se cobra diario, quincenal o mensual." />
+      <div class="form">
+        <span class="field-label">Frecuencias que puede escoger el cobrador</span>
+        {FREQ_OPTIONS.map((o) => (
+          <Switch label={o.label} hint={o.hint} checked={freqs.includes(o.value)} onChange={(on) => toggle(o.value, on)} />
+        ))}
+      </div>
+      <p class="example">
+        Ejemplo: {cop(100000)} al {pct || 0}% = <b class="num">{cop(Math.round(100000 * (1 + (pct || 0) / 100)))}</b> en total.
+      </p>
+      <Button loading={busy} onClick={save}>Guardar cambios</Button>
+    </section>
+  );
+}
+
 function AccountsSection({ orgId }) {
   const accounts = useQuery('admin:accounts', () => q(supabase.from('payment_accounts').select('id,name,type,account_number,owner_name,is_active,collector:profiles(full_name)').order('created_at')));
   const collectors = useQuery('admin:collectors-min', () => q(supabase.from('profiles').select('id,full_name').eq('role', 'cobrador').eq('is_active', true).order('full_name')));
@@ -278,6 +337,7 @@ export function Ajustes() {
       <div class="settings-grid">
         <CapitalSection />
         <NameSection name={ctx.organization.name} />
+        {settings.data ? <LoanSection settings={settings.data} orgId={orgId} key={'l' + settings.data.updated_at} /> : <Skeleton h={220} r={26} />}
         {settings.data ? <MoraSection settings={settings.data} orgId={orgId} key={settings.data.updated_at} /> : <Skeleton h={220} r={26} />}
         <AccountsSection orgId={orgId} />
       </div>

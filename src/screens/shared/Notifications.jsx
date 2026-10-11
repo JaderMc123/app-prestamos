@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'preact/hooks';
 import { useStore } from '../../lib/store.js';
 import { session } from '../../lib/session.js';
 import { supabase } from '../../lib/supabase.js';
@@ -8,6 +9,27 @@ import { PageHeader } from '../../components/Shell.jsx';
 import { Button, Empty, ErrorState, Skeleton } from '../../components/ui.jsx';
 import { Icon } from '../../components/Icon.jsx';
 import { refreshUnread, useNotifVersion } from './notifications.js';
+import { pushStatus } from '../../lib/push.js';
+import { Link } from '../../lib/router.jsx';
+
+// Invitación a recibir estas alertas también en el teléfono
+function PushInvite() {
+  const [status, setStatus] = useState(null);
+  useEffect(() => {
+    pushStatus().then(setStatus).catch(() => {});
+  }, []);
+  if (!status || status === 'on' || status === 'unsupported') return null;
+  return (
+    <Link href="/perfil" class="push-invite" data-enter>
+      <span class="row-icon tone-bg-lime"><Icon name="bell" size={19} /></span>
+      <div class="row-main">
+        <span class="row-title">Recibe estas alertas en tu teléfono</span>
+        <span class="row-sub">Actívalas en tu perfil, aunque la app esté cerrada.</span>
+      </div>
+      <Icon name="chevron" size={18} class="row-chevron" />
+    </Link>
+  );
+}
 
 // Ícono y color según el tipo de notificación
 const KIND = {
@@ -16,6 +38,7 @@ const KIND = {
   cuotas_no_pagadas: ['alert', 'amber'],
   cuotas_no_pagadas_ruta: ['alert', 'amber'],
   prestamo_en_mora: ['alert', 'coral'],
+  prestamos_importados: ['upload', 'lime'],
   recargo_mora: ['alert', 'coral'],
   capital_asignado: ['wallet', 'lime'],
   cliente_reasignado_entrada: ['users', 'lime'],
@@ -47,6 +70,7 @@ export function Notifications() {
   return (
     <>
       <PageHeader title="Notificaciones" back="/" actions={unread && <Button variant="ghost" size="sm" icon="check" onClick={markAll}>Marcar leídas</Button>} />
+      <PushInvite />
       {loading && !data ? (
         <div class="list-card">{[1, 2, 3, 4].map(() => <div class="row"><Skeleton h={40} w={40} r={14} /><div class="row-main"><Skeleton w="60%" /><Skeleton w="85%" h={12} /></div></div>)}</div>
       ) : error ? (

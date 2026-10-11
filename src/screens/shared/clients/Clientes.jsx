@@ -2,6 +2,7 @@ import { useMemo, useState } from 'preact/hooks';
 import { useStore } from '../../../lib/store.js';
 import { session } from '../../../lib/session.js';
 import { useQuery } from '../../../lib/query.js';
+import { navigate } from '../../../lib/router.jsx';
 import { cop } from '../../../lib/money.js';
 import { PageHeader } from '../../../components/Shell.jsx';
 import { Avatar, Button, Empty, ErrorState, Field, Pills, StatusDot } from '../../../components/ui.jsx';
@@ -89,7 +90,15 @@ export function Clientes() {
 
   return (
     <>
-      <PageHeader title="Clientes" actions={<Button size="sm" icon="plus" onClick={openNew}>Nuevo</Button>} />
+      <PageHeader
+        title="Clientes"
+        actions={
+          <>
+            {isAdmin && <Button size="sm" variant="ghost" icon="upload" class="only-mobile" aria-label="Importar Excel" onClick={() => navigate('/importar')} />}
+            <Button size="sm" icon="plus" onClick={openNew}>Nuevo</Button>
+          </>
+        }
+      />
       <div class="toolbar" data-enter>
         <Field label="Buscar" class="toolbar-search" value={term} onInput={(e) => setTerm(e.currentTarget.value)} placeholder="Nombre, cédula o barrio" prefix={<Icon name="search" size={18} />} />
         <Pills label="Filtrar clientes" value={filter} onChange={setFilter} options={FILTERS} />

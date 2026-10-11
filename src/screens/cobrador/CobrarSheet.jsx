@@ -115,6 +115,17 @@ export function CobrarSheet({ open, onClose, items = [], preset }) {
           ...coords
         });
         setDone({ amount: value, queued, detail: `${loan.client.full_name}${method === 'transferencia' ? ', transferencia por verificar' : ''}` });
+      } else if (mode === 'papeleria') {
+        if (method === 'transferencia' && !account) throw new Error('Elige la cuenta que recibió la transferencia.');
+        const { queued } = await send('charge_paperwork', {
+          p_loan_id: loan.id,
+          p_method: method,
+          p_account_id: method === 'transferencia' ? account : null,
+          p_transfer_reference: method === 'transferencia' ? reference || null : null,
+          p_paid_at: new Date().toISOString(),
+          p_client_uuid: uuid()
+        });
+        setDone({ amount: loan.paperwork, queued, title: 'Papelería cobrada', detail: `${loan.client.full_name}${method === 'transferencia' ? ', transferencia por verificar' : ''}` });
       } else {
         const { queued } = await send('add_collection_log', {
           p_loan_id: loan.id,
@@ -141,39 +152,56 @@ export function CobrarSheet({ open, onClose, items = [], preset }) {
     onClose();
   };
 
-  if (done) return <SuccessBurst amount={done.amount} detail={done.detail} queued={done.queued} onDone={finish} />;
+  if (done) return <SuccessBurst amount={done.amount} title={done.title} detail={done.detail} queued={done.queued} onDone={finish} />;
 
   return (
-    <Sheet open={open} onClose={onClose} title={loan ? loan.client.full_name : 'Cobrar'} subtitle={loan ? `Debe ${cop(loan.balance)}, cuota de ${cop(loan.daily)}` : 'Elige el cliente de tu ruta'}>
+    <Sheet open={open} onClose={onClose} title={loan ? loan.client.full_name : 'Cobrar'} subtitle={loan ? `Debe ${cop(loan.balance)}, cuota de ${cop(loan.daily)}${loan.paperwork > 0 ? `, papelería ${cop(loan.paperwork)}` : ''}` : 'Elige el cliente de tu ruta'}>
       {!loan ? (
         <ClientPicker items={items} onPick={pick} />
       ) : (
         <form class="form" onSubmit={submit}>
           <div data-enter>
-            <Pills label="Tipo de registro" value={mode} onChange={setMode} options={[{ value: 'cobro', label: 'Registrar abono' }, { value: 'obs', label: 'Observación' }]} />
+            <Pills
+              label="Tipo de registro"
+              value={mode}
+              onChange={setMode}
+              options={[{ value: 'cobro', label: 'Registrar abono' }, loan.paperwork > 0 && { value: 'papeleria', label: 'Papelería' }, { value: 'obs', label: 'Observación' }].filter(Boolean)}
+            />
           </div>
 
-          {mode === 'cobro' ? (
+          {mode === 'papeleria' && (
+            <div class="paperwork-card" data-enter>
+              <span class="muted">Papelería (cobro único)</span>
+              <b class="num">{cop(loan.paperwork)}</b>
+              <span class="field-hint">Se cobra una sola vez y no se suma a las cuotas.</span>
+            </div>
+          )}
+
+          {mode !== 'obs' ? (
             <>
-              <div class="amount-input" data-enter>
-                <span class="amount-currency">$</span>
-                <input
-                  class="amount-field num"
-                  size={Math.max(2, value.toLocaleString("es-CO").length)}
-                  inputMode="numeric"
-                  aria-label="Monto recibido"
-                  value={value ? value.toLocaleString('es-CO') : ''}
-                  onInput={(e) => setAmount(e.currentTarget.value)}
-                  placeholder="0"
-                />
-              </div>
-              <div class="chips" data-enter>
-                {quick.map((c) => (
-                  <button type="button" class={`chip ${value === c.v ? 'is-active' : ''}`} onClick={() => setAmount(String(c.v))}>
-                    {c.label} <b class="num">{cop(c.v)}</b>
-                  </button>
-                ))}
-              </div>
+              {mode === 'cobro' && (
+                <>
+                  <div class="amount-input" data-enter>
+                    <span class="amount-currency">$</span>
+                    <input
+                      class="amount-field num"
+                      size={Math.max(2, value.toLocaleString('es-CO').length)}
+                      inputMode="numeric"
+                      aria-label="Monto recibido"
+                      value={value ? value.toLocaleString('es-CO') : ''}
+                      onInput={(e) => setAmount(e.currentTarget.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div class="chips" data-enter>
+                    {quick.map((c) => (
+                      <button type="button" class={`chip ${value === c.v ? 'is-active' : ''}`} onClick={() => setAmount(String(c.v))}>
+                        {c.label} <b class="num">{cop(c.v)}</b>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
               <div data-enter>
                 <Pills label="Método de pago" value={method} onChange={setMethod} options={[{ value: 'efectivo', label: 'Efectivo' }, { value: 'transferencia', label: 'Transferencia' }]} />
               </div>
@@ -206,15 +234,17 @@ export function CobrarSheet({ open, onClose, items = [], preset }) {
             </>
           )}
 
+          {mode !== 'papeleria' && (
           <div data-enter>
-            <Field label={mode === 'cobro' ? 'Nota (opcional)' : 'Detalle'} value={note} onInput={(e) => setNote(e.currentTarget.value)} placeholder={mode === 'cobro' ? 'Ej. pagó con billetes de 50' : 'Ej. paga mañana el faltante'} />
+            <Field label={mode !== 'obs' ? 'Nota (opcional)' : 'Detalle'} value={note} onInput={(e) => setNote(e.currentTarget.value)} placeholder={mode !== 'obs' ? 'Ej. pagó con billetes de 50' : 'Ej. paga mañana el faltante'} />
           </div>
+          )}
 
           <div class="form-actions" data-enter>
             {!preset && <Button variant="ghost" onClick={() => setLoan(null)}>Cambiar cliente</Button>}
             {canWrite() ? (
-              <Button type="submit" size="lg" loading={busy} class="btn-grow" icon={mode === 'cobro' ? 'check' : 'logs'}>
-                {mode === 'cobro' ? `Cobrar ${value ? cop(value) : ''}` : 'Guardar observación'}
+              <Button type="submit" size="lg" loading={busy} class="btn-grow" icon={mode === 'obs' ? 'logs' : 'check'}>
+                {mode === 'cobro' ? `Cobrar ${value ? cop(value) : ''}` : mode === 'papeleria' ? `Cobrar papelería ${cop(loan.paperwork)}` : 'Guardar observación'}
               </Button>
             ) : (
               <Button type="submit" size="lg" variant="ghost" class="btn-grow" icon="lock">Solo lectura</Button>

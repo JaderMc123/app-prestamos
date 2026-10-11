@@ -18,16 +18,17 @@ export async function fetchRoute(userId) {
     q(
       supabase
         .from('loans')
-        .select('id,status,principal,daily_payment,total_to_pay,due_date,start_date,client:clients(id,full_name,address,neighborhood,phone,document_number,latitude,longitude,blocked_by_admin),loan_installments(due_date,amount_due,amount_paid)')
+        .select('id,status,principal,daily_payment,total_to_pay,due_date,start_date,frequency,paperwork_fee,paperwork_status,client:clients(id,full_name,address,neighborhood,phone,document_number,latitude,longitude,blocked_by_admin),loan_installments(due_date,amount_due,amount_paid)')
         .eq('collector_id', userId)
         .in('status', ['activo', 'en_mora'])
     ),
     q(
       supabase
         .from('payments')
-        .select('loan_id,amount,method,verification_status')
+        .select('loan_id,amount,method,verification_status,concept')
         .eq('collector_id', userId)
         .eq('is_reversed', false)
+        .neq('concept', 'saldo_anterior')
         .gte('paid_at', today + 'T00:00:00-05:00')
     )
   ]);
@@ -36,7 +37,7 @@ export async function fetchRoute(userId) {
   let collectedToday = 0;
   let pendingTransfers = 0;
   for (const p of paidToday) {
-    paidMap.set(p.loan_id, (paidMap.get(p.loan_id) || 0) + Number(p.amount));
+    if (p.concept !== 'papeleria') paidMap.set(p.loan_id, (paidMap.get(p.loan_id) || 0) + Number(p.amount));
     collectedToday += Number(p.amount);
     if (p.verification_status === 'pendiente') pendingTransfers++;
   }
@@ -64,6 +65,8 @@ export async function fetchRoute(userId) {
       id: l.id,
       client: l.client,
       daily: Number(l.daily_payment),
+      frequency: l.frequency || 'diario',
+      paperwork: l.paperwork_status === 'pendiente' ? Number(l.paperwork_fee) : 0,
       owedToDate,
       overdue,
       balance,
