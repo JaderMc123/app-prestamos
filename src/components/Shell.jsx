@@ -44,7 +44,7 @@ function TabBar({ nav, fab, path }) {
     </Link>
   );
   return (
-    <nav class="tabbar" aria-label="Navegación principal">
+    <nav class="tabbar" aria-label="Navegación principal" style={{ gridTemplateColumns: `repeat(${nav.length + (fab ? 1 : 0)}, 1fr)` }}>
       {nav.slice(0, half).map(item)}
       {fab && <Fab fab={fab} />}
       {nav.slice(half).map(item)}
@@ -128,7 +128,7 @@ function ConnectionChip() {
   return (
     <div class={`conn-chip ${online ? '' : 'is-off'}`} role="status">
       <Icon name={online ? 'sync' : 'offline'} size={16} class={syncing ? 'spin' : ''} />
-      <span>{online ? `Enviando ${pending} cobro${pending === 1 ? '' : 's'}…` : pending ? `Sin señal, ${pending} por enviar` : 'Sin señal'}</span>
+      <span>{online ? `Enviando ${pending} registro${pending === 1 ? '' : 's'}…` : pending ? `Sin señal, ${pending} por enviar` : 'Sin señal'}</span>
     </div>
   );
 }

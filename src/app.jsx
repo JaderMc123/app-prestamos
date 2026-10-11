@@ -3,6 +3,8 @@ import { useStore } from './lib/store.js';
 import { session } from './lib/session.js';
 import { Login } from './screens/auth/Login.jsx';
 import { Locked } from './screens/shared/Locked.jsx';
+import { TratamientoDatos } from './screens/shared/TratamientoDatos.jsx';
+import { usePath } from './lib/router.jsx';
 import { Toaster } from './components/Toast.jsx';
 import { startNotifications, stopNotifications } from './screens/shared/notifications.js';
 
@@ -25,6 +27,7 @@ function RoleApp({ role }) {
 
 export function App() {
   const { status, ctx, user } = useStore(session);
+  const path = usePath();
 
   // Quita la pantalla de arranque cuando ya se sabe si hay sesión
   useEffect(() => {
@@ -37,7 +40,8 @@ export function App() {
   }, [status, user?.id]);
 
   let view = null;
-  if (status === 'out') view = <Login />;
+  if (path === '/tratamiento-datos') view = <TratamientoDatos />;
+  else if (status === 'out') view = <Login />;
   else if (status === 'in') view = ctx.access_level === 'blocked' ? <Locked ctx={ctx} /> : <RoleApp role={ctx.role} />;
 
   return (

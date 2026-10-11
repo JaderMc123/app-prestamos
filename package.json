@@ -19,6 +19,7 @@
     "@capacitor/status-bar": "^7.0.1",
     "@supabase/supabase-js": "^2.49.4",
     "gsap": "^3.13.0",
+    "leaflet": "^1.9.4",
     "preact": "^10.26.5"
   },
   "devDependencies": {

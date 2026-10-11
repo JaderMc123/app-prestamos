@@ -16,13 +16,13 @@ function GeneralCard() {
   const s = useQuery('sa:platform', () => q(supabase.from('platform_settings').select('*').single()));
   const [f, setF] = useState(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => s.data && setF({ grace: String(s.data.grace_days), price: String(s.data.default_subscription_price), reminders: s.data.reminder_days.join(', ') }), [s.data?.updated_at]);
+  useEffect(() => s.data && setF({ grace: String(s.data.grace_days), price: String(s.data.default_subscription_price), reminders: s.data.reminder_days.join(', '), risk: String(s.data.risk_overdue_threshold ?? 3) }), [s.data?.updated_at]);
 
   const save = async () => {
     const reminders = f.reminders.split(/[,\s]+/).map(Number).filter((n) => n > 0);
     setBusy(true);
     try {
-      await q(supabase.from('platform_settings').update({ grace_days: Number(f.grace) || 0, default_subscription_price: parseCop(f.price), reminder_days: reminders }).eq('id', true));
+      await q(supabase.from('platform_settings').update({ grace_days: Number(f.grace) || 0, default_subscription_price: parseCop(f.price), reminder_days: reminders, risk_overdue_threshold: Math.max(1, Number(f.risk) || 3) }).eq('id', true));
       toast('Configuración guardada');
       s.reload();
     } catch (err) {
@@ -47,6 +47,7 @@ function GeneralCard() {
             <Field label="Valor mensual por defecto" inputMode="numeric" prefix="$" value={parseCop(f.price) ? parseCop(f.price).toLocaleString('es-CO') : ''} onInput={(e) => setF({ ...f, price: e.currentTarget.value })} />
           </div>
           <Field label="Recordar antes del vencimiento (días)" hint="Separados por coma. Ej. 5, 3, 1" value={f.reminders} onInput={(e) => setF({ ...f, reminders: e.currentTarget.value })} />
+          <Field label="Alerta de cliente riesgoso" hint="Número de préstamos en mora (en cualquier ruta) desde el que se avisa al cobrador." type="number" min="1" value={f.risk} onInput={(e) => setF({ ...f, risk: e.currentTarget.value })} />
           <Button loading={busy} onClick={save}>Guardar cambios</Button>
         </>
       )}

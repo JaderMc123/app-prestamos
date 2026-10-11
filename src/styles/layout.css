@@ -397,3 +397,13 @@
 }
 
 .shell-main > .banner:first-child { margin-top: calc(var(--safe-top) + 10px); }
+
+/* Clientes del admin: lista y mapa */
+.clients-split { display: grid; gap: 16px; }
+.clients-map { display: grid; gap: 10px; }
+@media (max-width: 1023px) { .hide-mobile { display: none; } }
+@media (min-width: 1024px) {
+  .clients-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); align-items: start; }
+  .clients-map { position: sticky; top: 32px; }
+  .clients-map .map-box { height: calc(100dvh - 140px) !important; }
+}

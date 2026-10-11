@@ -3,16 +3,17 @@ import { useStore } from '../../lib/store.js';
 import { session } from '../../lib/session.js';
 import { rpc } from '../../lib/api.js';
 import { useQuery } from '../../lib/query.js';
-import { Link, navigate } from '../../lib/router.jsx';
+import { Link } from '../../lib/router.jsx';
 import { greeting } from '../../lib/dates.js';
 import { cop } from '../../lib/money.js';
 import { outbox } from '../../lib/outbox.js';
 import { PageHeader } from '../../components/Shell.jsx';
 import { Money } from '../../components/Money.jsx';
-import { ActionPill, Empty, ErrorState, IconButton, Skeleton } from '../../components/ui.jsx';
+import { ActionPill, Empty, ErrorState, Skeleton } from '../../components/ui.jsx';
 import { Icon } from '../../components/Icon.jsx';
 import { RouteRow, RouteSkeleton } from './RouteList.jsx';
 import { openCobrar, openGasto } from './sheets.js';
+import { openNewClient } from '../shared/clients/sheets.js';
 
 // Pantalla de inicio del cobrador: caja, avance del día y ruta de hoy
 export function Home({ route }) {
@@ -40,8 +41,8 @@ export function Home({ route }) {
           {summary.data ? <Money value={summary.data.mi_efectivo} hidden={hidden} /> : <Skeleton h={56} w="70%" r={16} />}
           <div class="hero-actions">
             <ActionPill icon="scan" onClick={() => openCobrar()}>Cobrar</ActionPill>
+            <ActionPill icon="plus" onClick={openNewClient}>Prestar</ActionPill>
             <ActionPill icon="cash" onClick={openGasto}>Gasto</ActionPill>
-            <IconButton icon="route" label="Ver ruta completa" variant="solid" onClick={() => navigate('/ruta')} />
           </div>
         </section>
 

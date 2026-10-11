@@ -18,7 +18,7 @@ export async function fetchRoute(userId) {
     q(
       supabase
         .from('loans')
-        .select('id,status,principal,daily_payment,total_to_pay,due_date,start_date,client:clients(id,full_name,address,phone,document_number),loan_installments(due_date,amount_due,amount_paid)')
+        .select('id,status,principal,daily_payment,total_to_pay,due_date,start_date,client:clients(id,full_name,address,neighborhood,phone,document_number,latitude,longitude,blocked_by_admin),loan_installments(due_date,amount_due,amount_paid)')
         .eq('collector_id', userId)
         .in('status', ['activo', 'en_mora'])
     ),
@@ -83,3 +83,10 @@ export async function fetchRoute(userId) {
 
 export const fetchAccounts = () =>
   q(supabase.from('payment_accounts').select('id,name,type,collector_id').eq('is_active', true).order('name'));
+
+// Orden manual de la ruta guardado por el cobrador
+export const fetchRouteOrder = (userId) =>
+  q(supabase.from('collector_route_orders').select('loan_ids').eq('collector_id', userId).maybeSingle()).then((r) => r?.loan_ids || []);
+
+export const saveRouteOrder = (userId, orgId, loanIds) =>
+  q(supabase.from('collector_route_orders').upsert({ collector_id: userId, organization_id: orgId, loan_ids: loanIds, updated_at: new Date().toISOString() }));
