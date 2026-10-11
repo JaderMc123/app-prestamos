@@ -20,7 +20,7 @@ function writeDisk(key, data) {
 }
 
 export function invalidate(prefix) {
-  for (const key of listeners.keys()) if (key.startsWith(prefix)) listeners.get(key).forEach((fn) => fn());
+  for (const [key, fns] of listeners) if (typeof key === 'string' && key.startsWith(prefix)) fns.forEach((fn) => fn());
 }
 
 export function useQuery(key, fetcher, { persist = false } = {}) {
@@ -53,6 +53,11 @@ export function useQuery(key, fetcher, { persist = false } = {}) {
   }, [key, persist]);
 
   useEffect(() => {
+    // Consulta desactivada (sin clave): no carga ni se registra
+    if (!key) {
+      setLoading(false);
+      return;
+    }
     const cached = memory.get(key) ?? (persist ? readDisk(key) : null);
     setData(cached);
     setLoading(cached == null);
