@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase.js';
 import { q, rpc, manageUsers, message } from '../../lib/api.js';
 import { useQuery, invalidate } from '../../lib/query.js';
 import { cop, parseCop } from '../../lib/money.js';
-import { WEEKDAYS, timeAgo } from '../../lib/dates.js';
+import { WEEKDAYS, timeAgo, todayISO } from '../../lib/dates.js';
 import { PageHeader } from '../../components/Shell.jsx';
 import { Sheet } from '../../components/Sheet.jsx';
 import { Avatar, Button, Empty, ErrorState, Field, PasswordField, Skeleton, Switch } from '../../components/ui.jsx';
@@ -129,6 +129,38 @@ function NewCollectorSheet({ open, onClose }) {
   );
 }
 
+// Explica cómo se llega a "Debe tener en efectivo": lo que traía + lo de hoy
+function CashBreakdown({ moves, expected }) {
+  if (!moves) return null;
+  const sum = (types, sign) => moves.filter((m) => types.includes(m.type) && Math.sign(Number(m.amount)) === sign).reduce((s, m) => s + Number(m.amount), 0);
+  const cobros = sum(['cobro'], 1) + sum(['reverso_cobro'], -1);
+  const recibido = sum(['asignacion'], 1);
+  const prestado = sum(['desembolso'], -1);
+  const gastos = sum(['gasto'], -1);
+  const entregado = sum(['devolucion', 'asignacion'], -1);
+  const ajustes = moves.filter((m) => m.type === 'ajuste').reduce((s, m) => s + Number(m.amount), 0);
+  const today = moves.reduce((s, m) => s + Number(m.amount), 0);
+  const before = expected - today;
+  const lines = [
+    ['Traía de días anteriores', before],
+    ['Cobros en efectivo de hoy', cobros],
+    ['Capital que le diste hoy', recibido],
+    ['Préstamos que entregó hoy', prestado],
+    ['Gastos de hoy', gastos],
+    ['Entregó o devolvió hoy', entregado],
+    ['Ajustes de cuadre', ajustes]
+  ].filter(([k, v], i) => i === 0 || i === 1 || Math.abs(v) >= 1);
+  return (
+    <div class="cash-break">
+      {lines.map(([k, v]) => (
+        <div><span>{k}</span><b class={`num ${v < 0 ? 'text-coral' : ''}`}>{v < 0 ? '−' : '+'}{cop(Math.abs(v))}</b></div>
+      ))}
+      <div class="cash-break-total"><span>Debe tener en efectivo</span><b class="num">{cop(expected)}</b></div>
+      <p class="field-hint">Las transferencias no cuentan aquí porque esa plata no está en el bolsillo del cobrador: llegó a la cuenta.</p>
+    </div>
+  );
+}
+
 export function CollectorManage({ collector, part = 'all' }) {
   const caja = part !== 'config';
   const config = part !== 'caja';
@@ -144,6 +176,17 @@ export function CollectorManage({ collector, part = 'all' }) {
   const overview = useQuery(collector ? 'admin:overview' : null, () => rpc('admin_overview'), { persist: true });
   const summary = useQuery(collector ? 'admin:summary' : null, () => rpc('get_capital_summary'), { persist: true });
   const live = (overview.data?.collectors || []).find((c) => c.id === collector?.id);
+  // Movimientos de hoy en el efectivo del cobrador, para explicar de dónde sale lo que debe tener
+  const todayMoves = useQuery(collector && caja ? `admin:cash-today:${collector.id}` : null, () =>
+    q(
+      supabase
+        .from('capital_movements')
+        .select('type,amount,note')
+        .eq('wallet_collector_id', collector.id)
+        .is('wallet_account_id', null)
+        .gte('created_at', todayISO() + 'T00:00:00-05:00')
+    )
+  );
   const expected = Number(live?.cash ?? 0);
   const myCash = Number(summary.data?.tesoreria ?? 0);
 
@@ -225,8 +268,9 @@ export function CollectorManage({ collector, part = 'all' }) {
           <h3>Cuadre de caja</h3>
           <div class="cuadre-box">
             <div><span>Debe tener en efectivo</span><b class="num">{cop(expected)}</b></div>
-            <div><span>Cobró hoy</span><b class="num">{cop(live?.collected_today || 0)}</b></div>
+            <div><span>Cobró hoy (efectivo y transferencias)</span><b class="num">{cop(live?.collected_today || 0)}</b></div>
           </div>
+          <CashBreakdown moves={todayMoves.data} expected={expected} />
           <div class="form-row">
             <Field label="Efectivo que contó" inputMode="numeric" prefix="$" value={counted === '' ? '' : countedV.toLocaleString('es-CO')} placeholder={expected.toLocaleString('es-CO')} onInput={(e) => setCounted(e.currentTarget.value)} />
             <Field label="Te entrega a ti" inputMode="numeric" prefix="$" value={handed === '' ? '' : handedV.toLocaleString('es-CO')} placeholder={countedV.toLocaleString('es-CO')} onInput={(e) => setHanded(e.currentTarget.value)} hint="Este dinero entra a tu caja. Si lo dejas vacío, entrega todo." />

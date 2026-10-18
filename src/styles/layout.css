@@ -569,3 +569,10 @@
 @media (min-width: 640px) { .loan-left-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .tabs-even .pills { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .tabs-even .pill { justify-content: center; padding-left: 8px; padding-right: 8px; }
+
+/* Desglose del efectivo del cobrador en el cuadre */
+.cash-break { display: grid; gap: 6px; padding: 12px 14px; border-radius: var(--r-md); background: var(--s2); }
+.cash-break > div { display: flex; justify-content: space-between; gap: 12px; font-size: var(--t-sm); }
+.cash-break span { color: var(--tx2); }
+.cash-break-total { padding-top: 8px; margin-top: 2px; border-top: 1px solid var(--s3); }
+.cash-break-total span, .cash-break-total b { color: var(--tx); font-weight: 700; }
