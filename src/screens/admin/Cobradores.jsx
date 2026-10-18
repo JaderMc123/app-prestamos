@@ -243,7 +243,7 @@ export function CollectorManage({ collector, part = 'all' }) {
           <p class="example">
             Tu caja queda en <b class="num">{cop(myCash + handedV)}</b> y el cobrador se queda con <b class="num">{cop(Math.max(0, (diff !== 0 && adjust ? countedV : expected) - handedV))}</b>.
           </p>
-          <Button loading={busy === 'cuadre'} disabled={handedV > countedV || countedV < 0} onClick={closeCash} icon="check">Cerrar cuadre</Button>
+          <Button loading={busy === 'cuadre'} disabled={!live || handedV > countedV || countedV < 0} onClick={closeCash} icon="check">Cerrar cuadre</Button>
         </section>
         </>
       )}

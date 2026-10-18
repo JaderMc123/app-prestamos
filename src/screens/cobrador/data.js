@@ -28,7 +28,7 @@ export async function fetchRoute(userId) {
         .select('loan_id,amount,method,verification_status,concept')
         .eq('collector_id', userId)
         .eq('is_reversed', false)
-        .neq('concept', 'saldo_anterior')
+        .in('concept', ['cuota', 'papeleria'])
         .gte('paid_at', today + 'T00:00:00-05:00')
     )
   ]);

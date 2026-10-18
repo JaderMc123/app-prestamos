@@ -31,7 +31,8 @@ export function CobradorDetalle({ params }) {
     const pending = items.filter((i) => PENDING.includes(i.state));
     const paid = items.filter((i) => i.paidToday > 0);
     const late = items.filter((i) => i.state === 'mora' || i.state === 'atrasado');
-    return { pending, paid, late, all: items };
+    const today = new Set([...pending, ...paid].map((i) => i.id)).size;
+    return { pending, paid, late, today, all: items };
   }, [items]);
 
   const shown = filter === 'pendientes' ? groups.pending : filter === 'pagaron' ? groups.paid : filter === 'atrasados' ? groups.late : groups.all;
@@ -66,7 +67,7 @@ export function CobradorDetalle({ params }) {
       <div class="kpi-grid" data-enter>
         <article class="kpi">
           <span class="kpi-icon tone-bg-lime"><Icon name="check" size={18} /></span>
-          <p class="kpi-num num">{r ? groups.paid.length : '–'}<span class="kpi-of">/ {r ? groups.paid.length + groups.pending.length : '–'}</span></p>
+          <p class="kpi-num num">{r ? groups.paid.length : '–'}<span class="kpi-of">/ {r ? groups.today : '–'}</span></p>
           <span class="kpi-label">Clientes que pagaron hoy</span>
         </article>
         <article class="kpi">
