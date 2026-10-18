@@ -33,7 +33,6 @@ function MoraSection({ settings, orgId }) {
   const [grace, setGrace] = useState(settings.late_fee_grace_days ?? 0);
   const [recurring, setRecurring] = useState(settings.late_fee_recurring);
   const [every, setEvery] = useState(settings.late_fee_every_days ?? 7);
-  const [rounding, setRounding] = useState(String(settings.installment_rounding ?? 100));
   const [busy, setBusy] = useState(false);
 
   const num = type === 'fijo' ? parseCop(value) : Number(String(value).replace(',', '.')) || 0;
@@ -54,8 +53,7 @@ function MoraSection({ settings, orgId }) {
             late_fee_base: 'capital',
             late_fee_grace_days: Number(grace) || 0,
             late_fee_recurring: enabled && recurring,
-            late_fee_every_days: recurring ? Number(every) || 7 : null,
-            installment_rounding: Number(rounding)
+            late_fee_every_days: recurring ? Number(every) || 7 : null
           })
           .eq('organization_id', orgId)
       );
@@ -100,13 +98,6 @@ function MoraSection({ settings, orgId }) {
           </p>
         </div>
       )}
-      <Select label="Redondeo de las cuotas" value={rounding} onChange={(e) => setRounding(e.currentTarget.value)}>
-        <option value="0">Sin redondeo</option>
-        <option value="50">A 50 pesos</option>
-        <option value="100">A 100 pesos</option>
-        <option value="500">A 500 pesos</option>
-        <option value="1000">A 1.000 pesos</option>
-      </Select>
       <Button loading={busy} onClick={save}>Guardar cambios</Button>
     </section>
   );
@@ -119,9 +110,39 @@ const FREQ_OPTIONS = [
   { value: 'mensual', label: 'Mensual', hint: 'El mismo día de cada mes.' }
 ];
 
+// Redondeo: la cuota se deja en un número fácil de cobrar y lo que sobra se cobra en la última cuota
+const ROUNDING = [
+  { value: '0', label: 'Sin redondear' },
+  { value: '50', label: '$50' },
+  { value: '100', label: '$100' },
+  { value: '500', label: '$500' },
+  { value: '1000', label: '$1.000' }
+];
+
+function RoundingPicker({ value, onChange, total }) {
+  const n = 26;
+  const r = Number(value);
+  let per = r > 0 ? Math.floor(total / n / r) * r : 0;
+  if (per <= 0) per = Math.floor((total / n) * 100) / 100;
+  const last = total - per * (n - 1);
+  const money = (v) => (Number.isInteger(v) ? cop(v) : '$' + v.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+  return (
+    <div class="form">
+      <span class="field-label">Redondear la cuota a</span>
+      <Pills label="Redondear la cuota a" value={value} onChange={onChange} options={ROUNDING} />
+      <p class="example">
+        Con {n} cuotas de ese préstamo, el cobrador recibe <b class="num">{money(per)}</b> cada día
+        {Math.abs(last - per) >= 0.01 ? <> y en la última cuota <b class="num">{money(last)}</b>, para completar lo que falta</> : null}.
+        {r === 0 ? ' La cuota puede quedar con centavos, difícil de cobrar en efectivo.' : ` Así no hay que dar ni pedir monedas sueltas.`}
+      </p>
+    </div>
+  );
+}
+
 function LoanSection({ settings, orgId }) {
   const [rate, setRate] = useState(String(Number(settings.default_interest_rate ?? 20)));
   const [freqs, setFreqs] = useState(settings.frequencies?.length ? settings.frequencies : ['diario']);
+  const [rounding, setRounding] = useState(String(settings.installment_rounding ?? 100));
   const [busy, setBusy] = useState(false);
   const pct = Number(String(rate).replace(',', '.'));
 
@@ -136,7 +157,7 @@ function LoanSection({ settings, orgId }) {
     if (!(pct >= 0) || pct > 1000) return toast('Escribe un interés válido.', 'error');
     setBusy(true);
     try {
-      await q(supabase.from('settings').update({ default_interest_rate: pct, frequencies: freqs }).eq('organization_id', orgId));
+      await q(supabase.from('settings').update({ default_interest_rate: pct, frequencies: freqs, installment_rounding: Number(rounding) }).eq('organization_id', orgId));
       toast('Configuración de préstamos guardada');
       invalidate('admin:settings');
       invalidate('settings:loan:');
@@ -166,6 +187,7 @@ function LoanSection({ settings, orgId }) {
       <p class="example">
         Ejemplo: {cop(100000)} al {pct || 0}% = <b class="num">{cop(Math.round(100000 * (1 + (pct || 0) / 100)))}</b> en total.
       </p>
+      <RoundingPicker value={rounding} onChange={setRounding} total={Math.round(100000 * (1 + (pct || 0) / 100))} />
       <Button loading={busy} onClick={save}>Guardar cambios</Button>
     </section>
   );
