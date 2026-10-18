@@ -47,6 +47,31 @@ export async function fetchInsightsData() {
   return (loans || []).map((l) => ({ ...l, payments: byLoan.get(l.id) || [] }));
 }
 
+// Historial de un solo cliente (para su ficha): liviano y no depende de cargar toda la ruta
+export async function fetchClientHistory(clientId) {
+  const loans = await withTimeout(
+    q(
+      supabase
+        .from('loans')
+        .select('id,client_id,status,principal,interest_amount,total_to_pay,start_date,due_date,was_overdue,paperwork_fee,paperwork_status,frequency,imported,collector_id,loan_installments(id,due_date,amount_due,amount_paid,kind)')
+        .eq('client_id', clientId)
+    ),
+    15000
+  );
+  if (!loans?.length) return [];
+  const payments = await withTimeout(
+    q(
+      supabase
+        .from('payments')
+        .select('id,loan_id,amount,paid_at,method,concept,verification_status,is_reversed,notes,payment_allocations(installment_id,interest_part,paperwork_part,late_fee_part)')
+        .in('loan_id', loans.map((l) => l.id))
+        .order('paid_at', { ascending: false })
+    ),
+    15000
+  );
+  return loans.map((l) => ({ ...l, payments: (payments || []).filter((p) => p.loan_id === l.id) }));
+}
+
 // Resumen de un cliente a partir de todos sus préstamos y pagos
 export function scoreClient(loans = [], blocked = false) {
   const today = todayISO();

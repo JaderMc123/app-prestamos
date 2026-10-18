@@ -14,6 +14,8 @@ import { toast } from '../../../components/Toast.jsx';
 import { CLIENT_STATE, FREQUENCIES, findByDocument } from './data.js';
 import { LoanForm } from './LoanForm.jsx';
 import { PaymentHistory, ScoreCard } from './ClientInsights.jsx';
+import { fetchClientHistory, scoreClient } from './insights.js';
+import { useQuery } from '../../../lib/query.js';
 import { Pills } from '../../../components/ui.jsx';
 
 // Ficha del cliente: datos, cómo llegar, préstamos, fotos y "no prestar más"
@@ -38,8 +40,13 @@ function Photos({ client }) {
 
 const LOAN_STATUS = { activo: ['Activo', 'lime'], en_mora: ['En mora', 'coral'], pagado: ['Pagado', 'ok'], renovado: ['Renovado', 'lav'], castigado: ['Castigado', 'coral'] };
 
-export function ClientDetail({ client, ins, insError, onRetry, blockedByMe, onClose, onEdit }) {
+export function ClientDetail({ client, ins: insFromList, blockedByMe, onClose, onEdit }) {
   const ctx = useStore(session, (s) => s.ctx);
+  // La ficha carga solo el historial de este cliente; mientras tanto usa el del ranking si ya está
+  const history = useQuery(client ? `clients:history:${client.id}` : null, () => fetchClientHistory(client.id));
+  const ins = history.data ? scoreClient(history.data, client?.blocked_by_admin || blockedByMe) : insFromList || null;
+  const insError = history.error && !ins ? history.error : null;
+  const onRetry = history.reload;
   const isAdmin = ctx.role === 'admin';
   const [mode, setMode] = useState('view');
   const [reason, setReason] = useState('');
