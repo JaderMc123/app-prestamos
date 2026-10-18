@@ -66,7 +66,7 @@ export async function uploadClientPhotos(orgId, clientId, photos) {
     if (!blob || !FIELD[kind]) continue;
     const ext = blob.type === 'image/png' ? 'png' : 'jpg';
     const path = `${orgId}/${clientId}/${kind}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from('client-documents').upload(path, blob, { contentType: blob.type, upsert: true });
+    const { error } = await supabase.storage.from('client-documents').upload(path, blob, { contentType: blob.type, upsert: false });
     if (error) throw error;
     patch[FIELD[kind]] = path;
   }

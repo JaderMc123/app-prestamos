@@ -118,10 +118,13 @@ function toLoans(rows, users) {
   return out;
 }
 
+// Se envía en grupos pequeños para que el servidor no se demore demasiado en cada envío
+const CHUNK = 40;
+
 async function sendRows(rows, dry) {
   const results = [];
-  for (let i = 0; i < rows.length; i += 400) {
-    const part = rows.slice(i, i + 400);
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const part = rows.slice(i, i + CHUNK);
     const r = await rpc('import_loans', { p_rows: part.map((x) => x.data), p_dry_run: dry });
     r.rows.forEach((res, j) => results.push({ ...part[j], server: res }));
   }
@@ -137,6 +140,7 @@ export function Importar() {
   const [filter, setFilter] = useState('todas');
   const [busy, setBusy] = useState('');
   const [done, setDone] = useState(null);
+  const [progress, setProgress] = useState(0);
 
   const users = collectors.data ? new Set(collectors.data.map((c) => (c.username || '').toLowerCase())) : null;
 
@@ -213,26 +217,37 @@ export function Importar() {
   const shown = filter === 'errores' ? bad : filter === 'listas' ? ok : rows || [];
   const totalBalance = ok.reduce((s, r) => s + Number(r.server?.balance ?? 0), 0);
 
+  // Guarda grupo por grupo; si se corta la señal, quita de la lista lo ya guardado para no duplicarlo al reintentar
   const run = async () => {
     if (!canWrite()) return toast('La app está en modo solo lectura hasta que se pague la suscripción.', 'error');
     if (!ok.length) return;
     setBusy('save');
+    const savedLines = new Set();
+    const failed = [];
     try {
-      const res = await sendRows(ok, false);
-      const saved = res.filter((r) => r.server?.ok).length;
-      const failed = res.filter((r) => !r.server?.ok);
+      for (let i = 0; i < ok.length; i += CHUNK) {
+        const res = await sendRows(ok.slice(i, i + CHUNK), false);
+        for (const r of res) (r.server?.ok ? savedLines.add(r.line) : failed.push(r));
+        setProgress(Math.min(ok.length, i + CHUNK));
+      }
       invalidate('clients:');
       invalidate('admin:');
       invalidate('route:');
       if (failed.length) {
         setRows(failed);
         setFilter('todas');
-        toast(`Se importaron ${saved}. ${failed.length} no se pudieron guardar, revísalas.`, 'error');
-      } else setDone(saved);
+        toast(`Se importaron ${savedLines.size}. ${failed.length} no se pudieron guardar, revísalas.`, 'error');
+      } else setDone(savedLines.size);
     } catch (err) {
-      toast(message(err), 'error');
+      if (savedLines.size) {
+        setRows((cur) => (cur || []).filter((r) => !savedLines.has(r.line)));
+        invalidate('clients:');
+        invalidate('admin:');
+        toast(`Se guardaron ${savedLines.size} antes del error: ${message(err)}. Ya los quitamos de la lista; vuelve a intentar con los que faltan.`, 'error');
+      } else toast(message(err), 'error');
     } finally {
       setBusy('');
+      setProgress(0);
     }
   };
 
@@ -329,7 +344,7 @@ export function Importar() {
           <div class="import-actions" data-enter>
             {bad.length > 0 && <p class="muted">Las filas con errores no se importan. Corrígelas en el Excel y vuelve a subirlo.</p>}
             <Button size="lg" class="btn-block" icon="check" loading={busy === 'save'} disabled={!ok.length} onClick={run}>
-              Importar {ok.length} préstamo{ok.length === 1 ? '' : 's'}
+              {busy === 'save' && progress ? `Guardando ${progress} de ${ok.length}…` : `Importar ${ok.length} préstamo${ok.length === 1 ? '' : 's'}`}
             </Button>
           </div>
         </>

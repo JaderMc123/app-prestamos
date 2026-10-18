@@ -40,8 +40,18 @@ export async function login(code, username, password) {
 }
 
 export async function logout() {
+  // Si quedan cobros sin enviar, se avisa antes de cerrar sesión para no perderlos
+  const { outbox, flush } = await import('./outbox.js');
+  if (outbox.get().pending > 0) {
+    await flush();
+    if (outbox.get().pending > 0 && !confirm(`Tienes ${outbox.get().pending} registro(s) sin enviar. Si cierras sesión ahora se quedan guardados en este teléfono y se enviarán cuando vuelvas a entrar con señal. ¿Cerrar sesión?`)) return;
+  }
   await import('./push.js').then((m) => m.forgetPush()).catch(() => {});
   await supabase.auth.signOut();
+  // Se borran los datos guardados en el teléfono (clientes, ruta) para que otra persona no los vea
+  try {
+    Object.keys(localStorage).filter((k) => k.startsWith('q:')).forEach((k) => localStorage.removeItem(k));
+  } catch {}
   session.set({ status: 'out', user: null, ctx: null });
 }
 

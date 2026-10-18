@@ -458,3 +458,7 @@
 .goal-bar { display: block; height: 8px; border-radius: 99px; background: var(--s3); overflow: hidden; }
 .goal-bar span { display: block; height: 100%; background: var(--lime); transform-origin: left; transition: transform 0.6s ease; }
 .collector-manage { max-width: 760px; }
+
+/* Pantalla de error recuperable */
+.crash { min-height: 100dvh; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 24px; text-align: center; }
+.crash h1 { font-size: var(--t-xl); font-weight: 800; }

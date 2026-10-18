@@ -55,3 +55,16 @@ src/
 ```
 
 La tipografía Manrope se incluye en `public/fonts` bajo licencia SIL Open Font License.
+
+## Base de datos y funciones del servidor
+
+- `supabase/migrations/`: todos los cambios de la base de datos en orden. Cada cambio nuevo va en un archivo numerado.
+- `supabase/functions/`: funciones del servidor (`manage-users` crea usuarios, `send-push` envía notificaciones al teléfono).
+
+## Cómo se publican los cambios
+
+1. Todo cambio se hace en la rama `desarrollo`. Vercel genera una dirección de prueba para esa rama.
+2. Se prueba en esa dirección (cobrador, admin y súper admin, en celular y computador).
+3. Si el cambio toca la base de datos, el SQL debe funcionar con la versión actual de la app (nunca romper lo que está en producción).
+4. Cuando todo está bien, se une `desarrollo` en `main` y Vercel publica en producción.
+5. Si algo falla en producción, en Vercel se vuelve a la versión anterior con "Instant Rollback".

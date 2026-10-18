@@ -6,7 +6,7 @@ import { useQuery } from '../../lib/query.js';
 import { Link } from '../../lib/router.jsx';
 import { greeting } from '../../lib/dates.js';
 import { cop } from '../../lib/money.js';
-import { outbox } from '../../lib/outbox.js';
+import { dismissFailed, outbox } from '../../lib/outbox.js';
 import { PageHeader } from '../../components/Shell.jsx';
 import { Money } from '../../components/Money.jsx';
 import { ActionPill, Empty, ErrorState, Skeleton } from '../../components/ui.jsx';
@@ -49,7 +49,11 @@ export function Home({ route }) {
         {failed.length > 0 && (
           <div class="banner banner-coral" role="alert" data-enter>
             <Icon name="alert" size={18} />
-            <span>{failed.length} cobro{failed.length === 1 ? '' : 's'} hecho{failed.length === 1 ? '' : 's'} sin señal no se pudo registrar: {failed[0].error}</span>
+            <span>
+              {failed.length} registro{failed.length === 1 ? '' : 's'} hecho{failed.length === 1 ? '' : 's'} sin señal no se pudo guardar: {failed[0].error}.
+              {failed[0].args?.p_amount ? ` Valor: ${cop(failed[0].args.p_amount)}.` : ''} Avísale a tu administrador.
+            </span>
+            <button type="button" class="link-btn" onClick={dismissFailed}>Entendido</button>
           </div>
         )}
 

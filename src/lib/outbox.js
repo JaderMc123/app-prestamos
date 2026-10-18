@@ -1,5 +1,6 @@
 import { rpc, isOffline, logError } from './api.js';
 import { createStore } from './store.js';
+import { session } from './session.js';
 import { takePending, uploadClientPhotos } from './images.js';
 
 // Acá se guardan los cobros hechos sin señal y se envían cuando vuelve la conexión
@@ -20,8 +21,29 @@ function write(items) {
   outbox.set({ pending: items.length });
 }
 
+// Los rechazados también se guardan en el teléfono para que no se pierdan al cerrar la app
+const FAILED_KEY = 'outbox.failed.v1';
+function readFailed() {
+  try {
+    return JSON.parse(localStorage.getItem(FAILED_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+function writeFailed(items) {
+  try {
+    localStorage.setItem(FAILED_KEY, JSON.stringify(items));
+  } catch {}
+  outbox.set({ failed: items });
+}
+
 // failed: cobros que el servidor rechazó al sincronizar (se le muestran al cobrador)
-export const outbox = createStore({ pending: read().length, syncing: false, failed: [] });
+export const outbox = createStore({ pending: read().length, syncing: false, failed: readFailed() });
+
+export const dismissFailed = () => writeFailed([]);
+
+// Errores pasajeros (sin señal, sesión vencida, servidor ocupado): el registro se queda en cola y se reintenta
+const retryable = (err) => isOffline(err) || /jwt|token|401|403|session|sesi[oó]n|timeout|tiempo|503|502|500|rate|SIN_CONEXION|NO_AUTENTICADO/i.test(`${err?.code || ''} ${err?.message || ''}`);
 
 export const uuid = () =>
   crypto.randomUUID?.() ||
@@ -38,7 +60,7 @@ export async function send(fn, args, after = null) {
     return { data, queued: false };
   } catch (err) {
     if (!isOffline(err)) throw err;
-    write([...read(), { fn, args, after, at: Date.now() }]);
+    write([...read(), { fn, args, after, at: Date.now(), uid: session.get().user?.id || null }]);
     return { data: null, queued: true };
   }
 }
@@ -50,7 +72,17 @@ export async function flush() {
   outbox.set({ syncing: true });
   const left = [];
   const failed = [];
+  const me = session.get().user?.id;
+  if (!me) {
+    outbox.set({ syncing: false });
+    return;
+  }
   for (const item of items) {
+    // Cada registro se envía solo con la sesión de quien lo hizo
+    if (item.uid && item.uid !== me) {
+      left.push(item);
+      continue;
+    }
     try {
       const data = await rpc(item.fn, item.args);
       if (item.after?.type === 'client-photos') {
@@ -58,18 +90,30 @@ export async function flush() {
         if (photos) await uploadClientPhotos(item.after.orgId, data, photos);
       }
     } catch (err) {
-      if (isOffline(err)) left.push(item);
+      if (retryable(err)) left.push(item);
       else {
-        logError(err, { where: 'outbox', fn: item.fn });
-        failed.push({ ...item, error: err.message });
+        logError(err, { where: 'outbox', fn: item.fn, args: item.args });
+        failed.push({ ...item, error: err.message, failedAt: Date.now() });
       }
     }
   }
-  write(left);
-  outbox.set({ syncing: false, failed: [...outbox.get().failed, ...failed] });
+  // Solo se borra lo que el servidor confirmó; lo nuevo que entró durante el envío se conserva
+  const seen = new Set(items.map((i) => JSON.stringify(i)));
+  const added = read().filter((x) => !seen.has(JSON.stringify(x)));
+  write([...left, ...added]);
+  outbox.set({ syncing: false });
+  if (failed.length) writeFailed([...readFailed(), ...failed]);
 }
 
 export function initOutbox() {
   window.addEventListener('online', flush);
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && flush());
+  setInterval(flush, 60 * 1000);
+  let last = null;
+  session.subscribe((st) => {
+    const id = st.status === 'in' ? st.user?.id : null;
+    if (id && id !== last) flush();
+    last = id;
+  });
   flush();
 }

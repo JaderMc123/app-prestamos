@@ -33,6 +33,9 @@ export const isOffline = (err) =>
 function toApiError(err) {
   if (err instanceof ApiError) return err;
   const raw = String(err?.message || err || 'Error');
+  if (/cash_closures_collector_id_closure_date/.test(raw)) return new ApiError('CUADRE_REPETIDO', 'Ya se hizo el cuadre de hoy para este cobrador.');
+  if (/statement timeout|canceling statement/i.test(raw)) return new ApiError('TIEMPO_AGOTADO', 'El servidor se demoró demasiado. Intenta de nuevo en un momento.');
+  if (/duplicate key/i.test(raw)) return new ApiError('DUPLICADO', 'Ese registro ya existe.');
   const m = raw.match(/^([A-Z_]{4,})(?::\s*(.*))?$/);
   if (m) {
     const [, code, detail] = m;

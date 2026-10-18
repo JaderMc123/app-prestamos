@@ -75,6 +75,13 @@ export function MapPicker({ value, onChange, height = 240 }) {
 }
 
 // Mapa con varios clientes, cada punto con el color de su estado
+// El nombre va como texto (nunca como HTML) para que no se pueda inyectar código
+function textNode(text) {
+  const el = document.createElement('span');
+  el.textContent = String(text ?? '');
+  return el;
+}
+
 export function ClientsMap({ points, onSelect, height = 420 }) {
   const ref = useRef(null);
   const layer = useRef(null);
@@ -88,7 +95,7 @@ export function ClientsMap({ points, onSelect, height = 420 }) {
     for (const p of located) {
       L.marker([p.lat, p.lng], { icon: pinIcon(L, p.tone) })
         .addTo(layer.current)
-        .bindTooltip(p.label, { direction: 'top', offset: [0, -10] })
+        .bindTooltip(textNode(p.label), { direction: 'top', offset: [0, -10] })
         .on('click', () => onSelect?.(p));
     }
     if (located.length) map.fitBounds(L.latLngBounds(located.map((p) => [p.lat, p.lng])), { padding: [30, 30], maxZoom: 16 });
