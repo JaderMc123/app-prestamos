@@ -462,3 +462,55 @@
 /* Pantalla de error recuperable */
 .crash { min-height: 100dvh; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 24px; text-align: center; }
 .crash h1 { font-size: var(--t-xl); font-weight: 800; }
+
+/* Puntaje del cliente */
+.tone-ring-lime { --tone: var(--lime); }
+.tone-ring-ok { --tone: var(--ok); }
+.tone-ring-lav { --tone: var(--lav); }
+.tone-ring-amber { --tone: var(--amber); }
+.tone-ring-coral { --tone: var(--coral); }
+.score-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 3px; border-radius: var(--r-pill); background: var(--s3); background: color-mix(in srgb, var(--tone) 16%, transparent); color: var(--tone); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.score-badge b { display: grid; place-items: center; min-width: 26px; height: 26px; border-radius: 50%; background: var(--tone); color: #000; font-size: 12px; }
+.score-sm { padding: 3px; }
+.paper-panel .score-badge { background: var(--paper-2); background: color-mix(in srgb, var(--tone) 22%, #fff); color: #1a1a1a; }
+
+.score-card { display: grid; gap: 16px; padding: 18px; border-radius: var(--r-lg); background: var(--s2); border: 1px solid var(--s3); border-color: color-mix(in srgb, var(--tone, var(--lime)) 30%, transparent); }
+.score-card-lime { --tone: var(--lime); } .score-card-ok { --tone: var(--ok); } .score-card-lav { --tone: var(--lav); }
+.score-card-amber { --tone: var(--amber); } .score-card-coral { --tone: var(--coral); }
+.score-top { display: flex; align-items: center; gap: 16px; }
+.score-ring { --p: 0; flex-shrink: 0; width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--tone) calc(var(--p) * 360deg), var(--s3) 0); }
+.score-ring b { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 50%; background: var(--s2); font-size: 22px; font-weight: 800; }
+.score-level { font-size: var(--t-lg); font-weight: 800; color: var(--tone); }
+.score-advice { display: flex; align-items: center; gap: 6px; margin-top: 2px; font-size: var(--t-sm); color: var(--tx2); }
+.score-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
+.score-stats div { display: grid; gap: 2px; min-width: 0; }
+.score-stats span { font-size: var(--t-xs); color: var(--tx2); }
+.score-stats b { font-size: var(--t-md, 16px); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (min-width: 640px) { .score-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* Historial de pagos */
+.pay-history { display: grid; gap: 16px; }
+.pay-month { display: grid; gap: 4px; }
+.pay-month header { display: flex; justify-content: space-between; align-items: baseline; padding: 0 2px; font-size: var(--t-sm); color: var(--tx2); }
+.pay-month header b { color: var(--tx); }
+.pay-row.is-off .row-title, .pay-row.is-off .pay-amount b { text-decoration: line-through; opacity: 0.55; }
+.pay-amount { display: grid; justify-items: end; gap: 4px; flex-shrink: 0; }
+.pay-amount b { font-weight: 700; }
+
+/* Ranking de clientes */
+.section-switch .pills { width: 100%; }
+.level-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.level-chip { display: grid; gap: 2px; padding: 12px; border-radius: var(--r-md); background: var(--s1); background: color-mix(in srgb, var(--tone) 12%, var(--s1)); border: 1px solid var(--s3); border-color: color-mix(in srgb, var(--tone) 28%, transparent); min-width: 0; }
+.level-chip b { font-size: var(--t-xl); font-weight: 800; color: var(--tone); }
+.level-chip span { font-size: 12px; color: var(--tx2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-num { flex-shrink: 0; width: 22px; text-align: center; font-size: 12px; font-weight: 700; color: var(--paper-tx2); }
+.rank-bar { display: block; width: 100%; max-width: 160px; height: 6px; border-radius: 99px; background: var(--paper-2); overflow: hidden; }
+.rank-bar span { display: block; height: 100%; background: var(--lime-deep, #8bc34a); transform-origin: left; }
+.rank-note { font-size: var(--t-xs); }
+.route-sub .ready { color: #2e7d32; font-weight: 700; }
+.route-main .route-sub { overflow: hidden; }
+.route-sub > span:not(.status-dot):not(.route-tag):not(.rank-bar) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 420px) {
+  .level-chip { padding: 10px 8px; }
+  .level-chip span { font-size: 11px; }
+}

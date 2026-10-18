@@ -13,6 +13,8 @@ import { Icon } from '../../../components/Icon.jsx';
 import { toast } from '../../../components/Toast.jsx';
 import { CLIENT_STATE, FREQUENCIES, findByDocument } from './data.js';
 import { LoanForm } from './LoanForm.jsx';
+import { PaymentHistory, ScoreCard } from './ClientInsights.jsx';
+import { Pills } from '../../../components/ui.jsx';
 
 // Ficha del cliente: datos, cómo llegar, préstamos, fotos y "no prestar más"
 function Photos({ client }) {
@@ -34,15 +36,19 @@ function Photos({ client }) {
   );
 }
 
-export function ClientDetail({ client, blockedByMe, onClose, onEdit }) {
+const LOAN_STATUS = { activo: ['Activo', 'lime'], en_mora: ['En mora', 'coral'], pagado: ['Pagado', 'ok'], renovado: ['Renovado', 'lav'], castigado: ['Castigado', 'coral'] };
+
+export function ClientDetail({ client, ins, blockedByMe, onClose, onEdit }) {
   const ctx = useStore(session, (s) => s.ctx);
   const isAdmin = ctx.role === 'admin';
   const [mode, setMode] = useState('view');
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [info, setInfo] = useState(null);
+  const [tab, setTab] = useState('resumen');
 
   useEffect(() => {
+    setTab('resumen');
     setMode('view');
     setReason('');
     setInfo(null);
@@ -108,6 +114,45 @@ export function ClientDetail({ client, blockedByMe, onClose, onEdit }) {
             <button type="button" class="quick" onClick={() => onEdit(client)}><Icon name="settings" size={20} /><span>Editar</span></button>
           </div>
 
+          <div data-enter>
+            <Pills
+              label="Ficha del cliente"
+              value={tab}
+              onChange={setTab}
+              options={[
+                { value: 'resumen', label: 'Resumen' },
+                { value: 'pagos', label: 'Pagos', count: ins ? ins.payments.filter((p) => !p.is_reversed).length : null },
+                { value: 'prestamos', label: 'Préstamos', count: client.loans?.length ?? null }
+              ]}
+            />
+          </div>
+
+          {tab === 'pagos' && <PaymentHistory ins={ins} />}
+
+          {tab === 'prestamos' && (
+            <div class="list-card list-flat" data-enter>
+              {[...(client.loans || [])].sort((a, b) => (a.due_date < b.due_date ? 1 : -1)).map((l) => {
+                const [label, tone] = LOAN_STATUS[l.status] || [l.status, 'off'];
+                const due = (l.loan_installments || []).reduce((s, i) => s + Number(i.amount_due), 0);
+                const paid = (l.loan_installments || []).reduce((s, i) => s + Number(i.amount_paid), 0);
+                return (
+                  <div class="row">
+                    <span class={`row-icon tone-bg-${tone === 'off' ? 'lav' : tone === 'ok' ? 'lime' : tone}`}><Icon name="wallet" size={17} /></span>
+                    <div class="row-main">
+                      <span class="row-title num">{cop(l.principal)}</span>
+                      <span class="row-sub">{FREQUENCIES[l.frequency || 'diario'].label}, vence {fmtDate(l.due_date, { day: 'numeric', month: 'short', year: 'numeric' })} · pagó {cop(paid)} de {cop(due)}</span>
+                    </div>
+                    <span class={`tag tag-${tone}`}>{label}</span>
+                  </div>
+                );
+              })}
+              {!client.loans?.length && <p class="muted center">Este cliente aún no tiene préstamos.</p>}
+            </div>
+          )}
+
+          {tab === 'resumen' && (
+          <>
+          <ScoreCard ins={ins} />
           <section class="list-card list-flat" data-enter>
             <div class="row"><span class="row-icon"><Icon name="pin" size={18} /></span><div class="row-main"><span class="row-title">{client.address || 'Sin dirección'}</span><span class="row-sub">{client.neighborhood}</span></div></div>
             <div class="row"><span class="row-icon"><Icon name="phone" size={18} /></span><div class="row-main"><span class="row-title">{client.phone}</span>{client.phone2 && <span class="row-sub">Otro: {client.phone2}</span>}</div></div>
@@ -129,6 +174,8 @@ export function ClientDetail({ client, blockedByMe, onClose, onEdit }) {
           )}
 
           <Photos client={client} />
+          </>
+          )}
 
           <Button size="lg" class="btn-block" icon="plus" onClick={startLoan}>Nuevo préstamo</Button>
 

@@ -13,6 +13,8 @@ import { CLIENT_STATE, fetchClients, fetchMyBlocks } from './data.js';
 import { ClientForm } from './ClientForm.jsx';
 import { ClientDetail } from './ClientDetail.jsx';
 import { clientSheets } from './sheets.js';
+import { buildInsights, fetchInsightsData } from './insights.js';
+import { Ranking } from './ClientInsights.jsx';
 
 // Lista de clientes (cobrador y admin). El admin además ve el mapa con todos sus clientes
 const FILTERS = [
@@ -30,10 +32,17 @@ export function Clientes() {
   const [term, setTerm] = useState('');
   const [view, setView] = useState('lista');
   const [selected, setSelected] = useState(null);
+  const [section, setSection] = useState('lista');
+  // Historial de pagos y puntaje de cada cliente (se calcula con sus préstamos y abonos)
+  const loanData = useQuery(`clients:insights:${userId}`, fetchInsightsData);
   const clients = useQuery(`clients:${userId}`, fetchClients, { persist: true });
   const blocks = useQuery(isAdmin ? null : `clients:blocks:${userId}`, () => fetchMyBlocks(userId));
   const myBlocks = new Set((blocks.data || []).map((b) => b.client_id));
   const all = clients.data || [];
+  const insights = useMemo(
+    () => (loanData.data ? buildInsights(loanData.data, all.map((c) => ({ ...c, blocked_by_me: myBlocks.has(c.id) }))) : null),
+    [loanData.data, clients.data, blocks.data]
+  );
 
   const list = useMemo(() => {
     const t = term.trim().toLowerCase();
@@ -99,6 +108,13 @@ export function Clientes() {
           </>
         }
       />
+      <div class="section-switch" data-enter>
+        <Pills label="Sección" value={section} onChange={setSection} options={[{ value: 'lista', label: 'Clientes' }, { value: 'ranking', label: 'Mejores y riesgosos' }]} />
+      </div>
+      {section === 'ranking' ? (
+        <Ranking clients={all} insights={insights} loading={loanData.loading} onSelect={setSelected} />
+      ) : (
+      <>
       <div class="toolbar" data-enter>
         <Field label="Buscar" class="toolbar-search" value={term} onInput={(e) => setTerm(e.currentTarget.value)} placeholder="Nombre, cédula o barrio" prefix={<Icon name="search" size={18} />} />
         <Pills label="Filtrar clientes" value={filter} onChange={setFilter} options={FILTERS} />
@@ -121,8 +137,11 @@ export function Clientes() {
       ) : (
         listView
       )}
+      </>
+      )}
 
       <ClientDetail
+        ins={selected ? insights?.get(selected.id) : null}
         client={selected}
         blockedByMe={selected ? myBlocks.has(selected.id) : false}
         onClose={() => setSelected(null)}
