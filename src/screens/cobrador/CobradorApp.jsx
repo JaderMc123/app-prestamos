@@ -5,6 +5,7 @@ import { usePath, match } from '../../lib/router.jsx';
 import { AppShell } from '../../components/Shell.jsx';
 import { Notifications } from '../shared/Notifications.jsx';
 import { Profile } from '../shared/Profile.jsx';
+import { Movimientos } from '../shared/Movimientos.jsx';
 import { Clientes, ClientFormHost } from '../shared/clients/Clientes.jsx';
 import { CobrarSheet } from './CobrarSheet.jsx';
 import { GastoSheet } from './GastoSheet.jsx';
@@ -18,13 +19,15 @@ const NAV = [
   { href: '/', label: 'Inicio', icon: 'home' },
   { href: '/ruta', label: 'Ruta', icon: 'route' },
   { href: '/clientes', label: 'Clientes', icon: 'users' },
-  { href: '/perfil', label: 'Perfil', icon: 'user' }
+  { href: '/movimientos', label: 'Movimientos', icon: 'logs' },
+  { href: '/perfil', label: 'Perfil', icon: 'user', mobile: false }
 ];
 
 const ROUTES = [
   { path: '/', view: Home },
   { path: '/ruta', view: Ruta },
   { path: '/clientes', view: Clientes },
+  { path: '/movimientos', view: Movimientos },
   { path: '/notificaciones', view: Notifications },
   { path: '/perfil', view: Profile }
 ];

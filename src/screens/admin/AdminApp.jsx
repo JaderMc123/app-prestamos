@@ -7,6 +7,7 @@ import { Dashboard } from './Dashboard.jsx';
 import { Cobradores } from './Cobradores.jsx';
 import { Ajustes } from './Ajustes.jsx';
 import { Importar } from './Importar.jsx';
+import { Movimientos } from '../shared/Movimientos.jsx';
 import { CobradorDetalle } from './CobradorDetalle.jsx';
 import { openNewCollector } from './sheets.js';
 
@@ -16,6 +17,7 @@ const NAV = [
   { href: '/cobradores', label: 'Cobradores', icon: 'users' },
   { href: '/clientes', label: 'Clientes', icon: 'pin' },
   { href: '/ajustes', label: 'Ajustes', icon: 'settings' },
+  { href: '/movimientos', label: 'Movimientos', icon: 'logs', mobile: false },
   { href: '/importar', label: 'Importar Excel', icon: 'upload', mobile: false },
   { href: '/perfil', label: 'Perfil', icon: 'user', mobile: false }
 ];
@@ -27,6 +29,8 @@ const ROUTES = [
   { path: '/clientes', view: Clientes },
   { path: '/ajustes', view: Ajustes },
   { path: '/importar', view: Importar },
+  { path: '/movimientos', view: Movimientos },
+  { path: '/movimientos/:collector', view: Movimientos },
   { path: '/notificaciones', view: Notifications },
   { path: '/perfil', view: Profile }
 ];

@@ -51,6 +51,7 @@ export function Dashboard() {
               <span><i class="legend-dot" style={{ background: 'var(--tx3)' }} />Capital total {cop(total)}</span>
             </p>
           )}
+          <Link href="/movimientos" class="hero-link"><Icon name="logs" size={16} /> Ver movimientos y constancias</Link>
         </section>
 
         <div data-enter>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'preact/hooks';
 import { rpc } from '../../lib/api.js';
 import { useQuery } from '../../lib/query.js';
+import { Link } from '../../lib/router.jsx';
 import { cop } from '../../lib/money.js';
 import { timeAgo } from '../../lib/dates.js';
 import { PageHeader } from '../../components/Shell.jsx';
@@ -127,6 +128,7 @@ export function CobradorDetalle({ params }) {
         </>
       )}
 
+      {tab === 'caja' && <Link href={`/movimientos/${id}`} class="hero-link" data-enter><Icon name="logs" size={16} /> Ver todos sus movimientos y cuadres</Link>}
       {tab !== 'clientes' && collector && <CollectorManage collector={collector} part={tab} key={tab} />}
     </>
   );

@@ -514,3 +514,21 @@
   .level-chip { padding: 10px 8px; }
   .level-chip span { font-size: 11px; }
 }
+
+/* Movimientos y constancias */
+.hero-link { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-sm); font-weight: 600; color: var(--lime); }
+.move-totals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 14px 16px; border-radius: var(--r-md); background: var(--lime); color: var(--lime-ink); }
+.move-totals div { display: grid; gap: 2px; min-width: 0; }
+.move-totals span { font-size: var(--t-xs); font-weight: 600; opacity: 0.75; }
+.move-totals b { font-size: var(--t-lg); overflow: hidden; text-overflow: ellipsis; }
+.move-days { display: grid; gap: 18px; }
+.move-day { display: grid; gap: 8px; }
+.move-day h3 { font-size: var(--t-sm); font-weight: 700; color: var(--tx2); }
+.move-in { color: var(--lime); }
+.move-out { color: var(--tx); }
+.row.is-off .row-title, .row.is-off .move-in, .row.is-off .move-out { text-decoration: line-through; opacity: 0.55; }
+.receipt-amount { display: grid; justify-items: center; gap: 6px; padding: 18px; border-radius: var(--r-lg); background: var(--s2); }
+.receipt-amount span { font-size: var(--t-sm); color: var(--tx2); }
+.receipt-amount b { font-size: 34px; font-weight: 800; color: var(--lime); }
+.receipt-lines .row { justify-content: space-between; }
+@media (min-width: 1024px) { .move-totals { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

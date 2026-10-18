@@ -103,7 +103,7 @@ export function scoreClient(loans = [], blocked = false) {
   // Conviene ofrecerle si paga bien y no tiene un préstamo a medias
   const offer = (level === 'excelente' || level === 'bueno') && !inMora && (activeProgress == null || activeProgress >= 0.7);
 
-  payments.sort((a, b) => (a.paid_at < b.paid_at ? 1 : -1));
+  payments.sort((a, b) => new Date(b.paid_at) - new Date(a.paid_at));
   return {
     score,
     level,
