@@ -16,17 +16,36 @@ export const CONCEPT = { cuota: 'Cuota', papeleria: 'Papelería', saldo_anterior
 const day = (ts) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date(ts));
 const diffDays = (a, b) => Math.round((new Date(a + 'T12:00:00') - new Date(b + 'T12:00:00')) / 86400000);
 
-export const fetchInsightsData = () =>
-  q(
-    supabase
-      .from('loans')
-      .select(
-        'id,client_id,status,principal,interest_amount,total_to_pay,start_date,due_date,was_overdue,paperwork_fee,paperwork_status,frequency,imported,collector_id,' +
-          'loan_installments(id,due_date,amount_due,amount_paid,kind),' +
-          'payments!payments_loan_id_fkey(id,amount,paid_at,method,concept,verification_status,is_reversed,notes,payment_allocations(installment_id,interest_part,paperwork_part,late_fee_part))'
+// Se piden por separado (préstamos con cuotas y pagos con su reparto) y se unen en el celular: más rápido y sin ambigüedades
+const withTimeout = (p, ms = 20000) =>
+  Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('El servidor se demoró demasiado. Intenta de nuevo.')), ms))]);
+
+export async function fetchInsightsData() {
+  const [loans, payments] = await withTimeout(
+    Promise.all([
+      q(
+        supabase
+          .from('loans')
+          .select('id,client_id,status,principal,interest_amount,total_to_pay,start_date,due_date,was_overdue,paperwork_fee,paperwork_status,frequency,imported,collector_id,loan_installments(id,due_date,amount_due,amount_paid,kind)')
+          .order('start_date', { ascending: false })
+          .limit(2000)
+      ),
+      q(
+        supabase
+          .from('payments')
+          .select('id,loan_id,amount,paid_at,method,concept,verification_status,is_reversed,notes,payment_allocations(installment_id,interest_part,paperwork_part,late_fee_part)')
+          .order('paid_at', { ascending: false })
+          .limit(10000)
       )
-      .order('start_date', { ascending: false })
+    ])
   );
+  const byLoan = new Map();
+  for (const p of payments || []) {
+    if (!byLoan.has(p.loan_id)) byLoan.set(p.loan_id, []);
+    byLoan.get(p.loan_id).push(p);
+  }
+  return (loans || []).map((l) => ({ ...l, payments: byLoan.get(l.id) || [] }));
+}
 
 // Resumen de un cliente a partir de todos sus préstamos y pagos
 export function scoreClient(loans = [], blocked = false) {

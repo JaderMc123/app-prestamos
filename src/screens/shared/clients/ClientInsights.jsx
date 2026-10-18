@@ -19,18 +19,18 @@ export function ScoreBadge({ ins, size = 'md' }) {
   );
 }
 
-function LoadError({ onRetry }) {
+function LoadError({ onRetry, error }) {
   return (
     <div class="banner banner-amber" data-enter>
       <Icon name="alert" size={18} />
-      <span>No se pudo cargar el historial. Revisa tu conexión.</span>
+      <span>No se pudo cargar el historial. {error?.message ? `(${error.message})` : 'Revisa tu conexión.'}</span>
       {onRetry && <button type="button" class="link-btn" onClick={onRetry}>Reintentar</button>}
     </div>
   );
 }
 
 export function ScoreCard({ ins, error, onRetry }) {
-  if (!ins) return error ? <LoadError onRetry={onRetry} /> : <Skeleton h={150} r={22} />;
+  if (!ins) return error ? <LoadError onRetry={onRetry} error={error} /> : <Skeleton h={150} r={22} />;
   const lv = LEVELS[ins.level];
   return (
     <section class={`score-card score-card-${lv.tone}`} data-enter>
@@ -63,7 +63,7 @@ function statusOf(p) {
 
 export function PaymentHistory({ ins, error, onRetry }) {
   const [show, setShow] = useState(30);
-  if (!ins) return error ? <LoadError onRetry={onRetry} /> : <Skeleton h={200} r={22} />;
+  if (!ins) return error ? <LoadError onRetry={onRetry} error={error} /> : <Skeleton h={200} r={22} />;
   const list = ins.payments;
   if (!list.length) return <Empty icon="cash" title="Sin pagos todavía">Aquí aparecerá cada abono que haga el cliente.</Empty>;
 
@@ -150,7 +150,7 @@ export function Ranking({ clients, insights, loading, error, onRetry, onSelect }
       </div>
       <section class="paper-panel paper-flat" data-enter>
         {error && !insights ? (
-          <div class="pad-16"><LoadError onRetry={onRetry} /></div>
+          <div class="pad-16"><LoadError onRetry={onRetry} error={error} /></div>
         ) : loading && !insights ? (
           <div class="route-list">{[1, 2, 3, 4].map(() => <div class="route-row"><Skeleton w={44} h={44} r={22} class="sk-paper" /><div class="route-main"><Skeleton w="50%" class="sk-paper" /><Skeleton w="70%" h={10} class="sk-paper" /></div></div>)}</div>
         ) : !list.length ? (
