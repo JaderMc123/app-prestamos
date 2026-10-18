@@ -112,7 +112,7 @@ export function Clientes() {
         <Pills label="Sección" value={section} onChange={setSection} options={[{ value: 'lista', label: 'Clientes' }, { value: 'ranking', label: 'Mejores y riesgosos' }]} />
       </div>
       {section === 'ranking' ? (
-        <Ranking clients={all} insights={insights} loading={loanData.loading} onSelect={setSelected} />
+        <Ranking clients={all} insights={insights} loading={loanData.loading} error={loanData.error} onRetry={loanData.reload} onSelect={setSelected} />
       ) : (
       <>
       <div class="toolbar" data-enter>
@@ -142,6 +142,8 @@ export function Clientes() {
 
       <ClientDetail
         ins={selected ? insights?.get(selected.id) : null}
+        insError={loanData.error}
+        onRetry={loanData.reload}
         client={selected}
         blockedByMe={selected ? myBlocks.has(selected.id) : false}
         onClose={() => setSelected(null)}

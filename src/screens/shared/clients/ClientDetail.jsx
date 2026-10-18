@@ -38,7 +38,7 @@ function Photos({ client }) {
 
 const LOAN_STATUS = { activo: ['Activo', 'lime'], en_mora: ['En mora', 'coral'], pagado: ['Pagado', 'ok'], renovado: ['Renovado', 'lav'], castigado: ['Castigado', 'coral'] };
 
-export function ClientDetail({ client, ins, blockedByMe, onClose, onEdit }) {
+export function ClientDetail({ client, ins, insError, onRetry, blockedByMe, onClose, onEdit }) {
   const ctx = useStore(session, (s) => s.ctx);
   const isAdmin = ctx.role === 'admin';
   const [mode, setMode] = useState('view');
@@ -127,7 +127,7 @@ export function ClientDetail({ client, ins, blockedByMe, onClose, onEdit }) {
             />
           </div>
 
-          {tab === 'pagos' && <PaymentHistory ins={ins} />}
+          {tab === 'pagos' && <PaymentHistory ins={ins} error={insError} onRetry={onRetry} />}
 
           {tab === 'prestamos' && (
             <div class="list-card list-flat" data-enter>
@@ -152,7 +152,7 @@ export function ClientDetail({ client, ins, blockedByMe, onClose, onEdit }) {
 
           {tab === 'resumen' && (
           <>
-          <ScoreCard ins={ins} />
+          <ScoreCard ins={ins} error={insError} onRetry={onRetry} />
           <section class="list-card list-flat" data-enter>
             <div class="row"><span class="row-icon"><Icon name="pin" size={18} /></span><div class="row-main"><span class="row-title">{client.address || 'Sin dirección'}</span><span class="row-sub">{client.neighborhood}</span></div></div>
             <div class="row"><span class="row-icon"><Icon name="phone" size={18} /></span><div class="row-main"><span class="row-title">{client.phone}</span>{client.phone2 && <span class="row-sub">Otro: {client.phone2}</span>}</div></div>

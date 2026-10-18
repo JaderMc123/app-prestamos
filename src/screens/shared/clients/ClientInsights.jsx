@@ -19,8 +19,18 @@ export function ScoreBadge({ ins, size = 'md' }) {
   );
 }
 
-export function ScoreCard({ ins }) {
-  if (!ins) return <Skeleton h={150} r={22} />;
+function LoadError({ onRetry }) {
+  return (
+    <div class="banner banner-amber" data-enter>
+      <Icon name="alert" size={18} />
+      <span>No se pudo cargar el historial. Revisa tu conexión.</span>
+      {onRetry && <button type="button" class="link-btn" onClick={onRetry}>Reintentar</button>}
+    </div>
+  );
+}
+
+export function ScoreCard({ ins, error, onRetry }) {
+  if (!ins) return error ? <LoadError onRetry={onRetry} /> : <Skeleton h={150} r={22} />;
   const lv = LEVELS[ins.level];
   return (
     <section class={`score-card score-card-${lv.tone}`} data-enter>
@@ -51,9 +61,9 @@ function statusOf(p) {
   return null;
 }
 
-export function PaymentHistory({ ins }) {
+export function PaymentHistory({ ins, error, onRetry }) {
   const [show, setShow] = useState(30);
-  if (!ins) return <Skeleton h={200} r={22} />;
+  if (!ins) return error ? <LoadError onRetry={onRetry} /> : <Skeleton h={200} r={22} />;
   const list = ins.payments;
   if (!list.length) return <Empty icon="cash" title="Sin pagos todavía">Aquí aparecerá cada abono que haga el cliente.</Empty>;
 
@@ -106,7 +116,7 @@ const SEGMENTS = [
   { value: 'riesgo', label: 'No prestar', icon: 'lock', empty: 'No hay clientes riesgosos.' }
 ];
 
-export function Ranking({ clients, insights, loading, onSelect }) {
+export function Ranking({ clients, insights, loading, error, onRetry, onSelect }) {
   const [seg, setSeg] = useState('ofrecer');
   const rows = useMemo(() => clients.map((c) => ({ c, i: insights?.get(c.id) })).filter((r) => r.i), [clients, insights]);
   const counts = useMemo(() => {
@@ -139,7 +149,9 @@ export function Ranking({ clients, insights, loading, onSelect }) {
         <Pills label="Ver" value={seg} onChange={setSeg} options={SEGMENTS.map((s) => ({ value: s.value, label: s.label }))} />
       </div>
       <section class="paper-panel paper-flat" data-enter>
-        {loading && !insights ? (
+        {error && !insights ? (
+          <div class="pad-16"><LoadError onRetry={onRetry} /></div>
+        ) : loading && !insights ? (
           <div class="route-list">{[1, 2, 3, 4].map(() => <div class="route-row"><Skeleton w={44} h={44} r={22} class="sk-paper" /><div class="route-main"><Skeleton w="50%" class="sk-paper" /><Skeleton w="70%" h={10} class="sk-paper" /></div></div>)}</div>
         ) : !list.length ? (
           <Empty icon={meta.icon} title="Nadie por ahora">{meta.empty}</Empty>

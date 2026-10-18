@@ -39,7 +39,7 @@ async function fetchMovements(days, collector) {
       byCollector(
         supabase
           .from('payments')
-          .select('id,amount,paid_at,method,concept,verification_status,is_reversed,reversal_reason,collector_id,account:payment_accounts(name),loan:loans(client:clients(full_name))')
+          .select('id,amount,paid_at,method,concept,verification_status,is_reversed,reversal_reason,collector_id,account:payment_accounts(name),loan:loans!payments_loan_id_fkey(client:clients(full_name))')
           .neq('concept', 'saldo_anterior')
           .gte('paid_at', from)
           .order('paid_at', { ascending: false })

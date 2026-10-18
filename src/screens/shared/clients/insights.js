@@ -23,7 +23,7 @@ export const fetchInsightsData = () =>
       .select(
         'id,client_id,status,principal,interest_amount,total_to_pay,start_date,due_date,was_overdue,paperwork_fee,paperwork_status,frequency,imported,collector_id,' +
           'loan_installments(id,due_date,amount_due,amount_paid,kind),' +
-          'payments(id,amount,paid_at,method,concept,verification_status,is_reversed,notes,payment_allocations(installment_id,interest_part,paperwork_part,late_fee_part))'
+          'payments!payments_loan_id_fkey(id,amount,paid_at,method,concept,verification_status,is_reversed,notes,payment_allocations(installment_id,interest_part,paperwork_part,late_fee_part))'
       )
       .order('start_date', { ascending: false })
   );
