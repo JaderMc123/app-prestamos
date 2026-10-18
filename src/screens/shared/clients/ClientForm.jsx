@@ -3,7 +3,7 @@ import { useStore } from '../../../lib/store.js';
 import { session, canWrite } from '../../../lib/session.js';
 import { message } from '../../../lib/api.js';
 import { send, uuid } from '../../../lib/outbox.js';
-import { invalidate } from '../../../lib/query.js';
+import { invalidate, useQuery } from '../../../lib/query.js';
 import { getPosition, reverseGeocode, searchAddress } from '../../../lib/geo.js';
 import { savePending, uploadClientPhotos } from '../../../lib/images.js';
 import { Sheet } from '../../../components/Sheet.jsx';
@@ -13,15 +13,22 @@ import { MapPicker } from '../../../components/Map.jsx';
 import { PhotoInput } from '../../../components/PhotoInput.jsx';
 import { SignaturePad } from '../../../components/SignaturePad.jsx';
 import { toast } from '../../../components/Toast.jsx';
-import { findByDocument } from './data.js';
+import { CLIENT_STATE, fetchClients, findByDocument } from './data.js';
+import { Avatar, StatusDot } from '../../../components/ui.jsx';
 import { LoanForm } from './LoanForm.jsx';
 import { RiskAlerts } from './RiskAlerts.jsx';
 
 // Acá se crea o edita un cliente: cédula, datos, ubicación, fotos y autorización de datos
 const EMPTY = { document_number: '', full_name: '', phone: '', neighborhood: '', address: '', phone2: '', occupation: '', reference_name: '', reference_phone: '', notes: '' };
 
+const norm = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+const onlyDigits = (t) => /^[\d.\s-]+$/.test(t.trim());
+
 export function ClientForm({ open, onClose, editing = null }) {
   const ctx = useStore(session, (s) => s.ctx);
+  const userId = useStore(session, (s) => s.user?.id);
+  const [term, setTerm] = useState('');
+  const clients = useQuery(open && !editing ? `clients:${userId}` : null, fetchClients, { persist: true });
   const [step, setStep] = useState('doc');
   const [f, setF] = useState(EMPTY);
   const [info, setInfo] = useState(null);
@@ -49,6 +56,7 @@ export function ClientForm({ open, onClose, editing = null }) {
       setLoc(null);
       setConsent(false);
       setInfo(null);
+      setTerm('');
       setStep('doc');
     }
   }, [open, editing?.id]);
@@ -56,10 +64,11 @@ export function ClientForm({ open, onClose, editing = null }) {
   const set = (k) => (e) => setF({ ...f, [k]: e.currentTarget.value });
 
   // Busca la cédula: si ya existe en la ruta, llena los datos
-  const lookup = async (e) => {
-    e?.preventDefault();
-    const doc = f.document_number.replace(/\D/g, '');
+  const lookup = async (e, given) => {
+    e?.preventDefault?.();
+    const doc = (given ?? f.document_number).replace(/\D/g, '');
     if (doc.length < 5) return toast('Escribe la cédula completa.', 'error');
+    setF((cur) => ({ ...cur, document_number: doc }));
     setBusy('doc');
     try {
       const r = await findByDocument(doc);
@@ -78,6 +87,43 @@ export function ClientForm({ open, onClose, editing = null }) {
       setStep('form');
       takeLocation(true);
     }
+  };
+
+  // Búsqueda por nombre (principal) o por cédula en los clientes ya cargados
+  const matches = (() => {
+    const t = norm(term);
+    if (t.length < 2) return [];
+    const digits = term.replace(/\D/g, '');
+    return (clients.data || [])
+      .filter((c) => norm(c.full_name).includes(t) || (digits.length >= 3 && c.document_number.includes(digits)))
+      .slice(0, 8);
+  })();
+
+  // Cliente nuevo: si escribió una cédula, se revisa en toda la ruta; si escribió un nombre, se llena el formulario
+  const startNew = (e) => {
+    e?.preventDefault();
+    const digits = term.replace(/\D/g, '');
+    if (onlyDigits(term) && digits.length >= 5) return lookup(null, digits);
+    setF({ ...EMPTY, full_name: onlyDigits(term) ? '' : term.trim() });
+    setInfo(null);
+    setStep('form');
+    takeLocation(true);
+  };
+
+  // Al escribir la cédula en un cliente nuevo, se revisa si ya existe o tiene alertas
+  const checkDoc = async () => {
+    const doc = f.document_number.replace(/\D/g, '');
+    if (editing || info?.client || doc.length < 5) return;
+    try {
+      const r = await findByDocument(doc);
+      setInfo(r);
+      if (r.client) {
+        const c = r.client;
+        setF((cur) => ({ ...cur, ...Object.fromEntries(Object.keys(EMPTY).map((k) => [k, c[k] || cur[k] || ''])), document_number: c.document_number }));
+        setConsent(!!c.data_consent_accepted);
+        toast('Esa cédula ya existe: cargamos sus datos', 'info');
+      }
+    } catch {}
   };
 
   // Toma la ubicación actual; si la dirección está vacía, intenta llenarla
@@ -162,13 +208,34 @@ export function ClientForm({ open, onClose, editing = null }) {
   const title = step === 'loan' ? 'Nuevo préstamo' : editing ? 'Editar cliente' : 'Nuevo cliente';
 
   return (
-    <Sheet open={open} onClose={onClose} title={title} subtitle={step === 'doc' ? 'Empieza por la cédula' : step === 'loan' ? f.full_name : null} size="lg">
+    <Sheet open={open} onClose={onClose} title={title} subtitle={step === 'doc' ? 'Busca por nombre o cédula' : step === 'loan' ? f.full_name : null} size="lg">
       {step === 'doc' && (
-        <form class="form" onSubmit={lookup}>
+        <form class="form" onSubmit={startNew}>
           <div data-enter>
-            <Field label="Cédula" inputMode="numeric" value={f.document_number} onInput={set('document_number')} prefix={<Icon name="user" size={18} />} placeholder="Número de cédula" />
+            <Field label="Buscar cliente" value={term} onInput={(e) => setTerm(e.currentTarget.value)} prefix={<Icon name="search" size={18} />} placeholder="Nombre o cédula" autocomplete="off" autofocus />
           </div>
-          <Button type="submit" size="lg" class="btn-block" loading={busy === 'doc'} icon="search">Buscar y continuar</Button>
+          {matches.length > 0 && (
+            <div class="pick-list" data-enter>
+              {matches.map((c) => (
+                <button type="button" class="row row-button" onClick={() => lookup(null, c.document_number)}>
+                  <Avatar name={c.full_name} size={40} />
+                  <div class="row-main">
+                    <span class="row-title">{c.full_name}</span>
+                    <span class="row-sub"><StatusDot tone={CLIENT_STATE[c.state].tone} /> CC {c.document_number}{c.neighborhood ? `, ${c.neighborhood}` : ''}</span>
+                  </div>
+                  <Icon name="chevron" size={18} class="row-chevron" />
+                </button>
+              ))}
+            </div>
+          )}
+          {term.trim().length >= 2 && !matches.length && (
+            <p class="muted center" data-enter>
+              {onlyDigits(term) ? 'No está en tu lista. Al continuar revisamos esa cédula en toda la ruta.' : 'No encontramos ese nombre en tus clientes. Si ya existe con otro cobrador, búscalo por cédula.'}
+            </p>
+          )}
+          <Button type="submit" size="lg" class="btn-block" variant={matches.length ? 'ghost' : 'lime'} loading={busy === 'doc'} icon="plus">
+            {onlyDigits(term) && term.replace(/\D/g, '').length >= 5 ? 'Buscar cédula y continuar' : 'Crear cliente nuevo'}
+          </Button>
         </form>
       )}
 
@@ -178,7 +245,7 @@ export function ClientForm({ open, onClose, editing = null }) {
           <section class="form-section" data-enter>
             <h3>Datos</h3>
             <div class="form-row">
-              <Field label="Cédula" inputMode="numeric" value={f.document_number} onInput={set('document_number')} disabled={!!editing || !!info?.client} />
+              <Field label="Cédula" inputMode="numeric" value={f.document_number} onInput={set('document_number')} onBlur={checkDoc} disabled={!!editing || !!info?.client} />
               <Field label="Nombre completo" value={f.full_name} onInput={set('full_name')} />
             </div>
             <div class="form-row">

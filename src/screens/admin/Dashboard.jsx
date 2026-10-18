@@ -30,6 +30,8 @@ export function Dashboard() {
   const labels = months.map((m) => fmtDate(m.month + '-15', { month: 'short' }));
   const series = view === 'todo' ? [SERIES.cobrado, SERIES.prestado].map((x, i) => ({ ...x, values: months.map((m) => Number(i ? m.prestado : m.cobrado)) })) : [{ ...SERIES[view], values: months.map((m) => Number(m[view])) }];
   const total = s ? Number(s.capital_liquido_total) + Number(s.capital_en_calle_total) : 0;
+  // Mi caja = dinero del admin; baja al asignar a un cobrador y sube cuando el cobrador entrega en el cuadre
+  const inCollectors = s ? Number(s.capital_liquido_total) - Number(s.tesoreria) : 0;
   const thisMonth = Number(months[months.length - 1]?.ganancia || 0);
   const lastMonth = Number(months[months.length - 2]?.ganancia || 0);
   const delta = lastMonth > 0 ? ((thisMonth - lastMonth) / lastMonth) * 100 : null;
@@ -40,12 +42,13 @@ export function Dashboard() {
         <PageHeader eyebrow={greeting() + ','} title={ctx.full_name.split(' ')[0]} />
 
         <section class="hero" data-enter>
-          <div class="hero-label"><span>Capital total</span></div>
-          {s ? <Money value={total} /> : <Skeleton h={56} w="70%" r={16} />}
+          <div class="hero-label"><span>Mi caja</span></div>
+          {s ? <Money value={Number(s.tesoreria)} /> : <Skeleton h={56} w="70%" r={16} />}
           {s && (
             <p class="hero-split muted">
-              <span><i class="legend-dot" style={{ background: 'var(--lime)' }} />Disponible {cop(s.capital_liquido_total)}</span>
+              <span><i class="legend-dot" style={{ background: 'var(--lime)' }} />En cobradores {cop(inCollectors)}</span>
               <span><i class="legend-dot" style={{ background: 'var(--lav)' }} />En la calle {cop(s.capital_en_calle_total)}</span>
+              <span><i class="legend-dot" style={{ background: 'var(--tx3)' }} />Capital total {cop(total)}</span>
             </p>
           )}
         </section>

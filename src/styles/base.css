@@ -116,3 +116,6 @@ p {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Evita que la pantalla se corra de lado en el celular */
+html, body { overflow-x: clip; }

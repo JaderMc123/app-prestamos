@@ -7,6 +7,7 @@ import { Dashboard } from './Dashboard.jsx';
 import { Cobradores } from './Cobradores.jsx';
 import { Ajustes } from './Ajustes.jsx';
 import { Importar } from './Importar.jsx';
+import { CobradorDetalle } from './CobradorDetalle.jsx';
 import { openNewCollector } from './sheets.js';
 
 // Acá están las pantallas y el menú del administrador
@@ -22,6 +23,7 @@ const NAV = [
 const ROUTES = [
   { path: '/', view: Dashboard },
   { path: '/cobradores', view: Cobradores },
+  { path: '/cobradores/:id', view: CobradorDetalle },
   { path: '/clientes', view: Clientes },
   { path: '/ajustes', view: Ajustes },
   { path: '/importar', view: Importar },

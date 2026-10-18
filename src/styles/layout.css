@@ -446,3 +446,15 @@
 
 /* Invitación a activar notificaciones en el teléfono */
 .push-invite { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: var(--r-lg); background: var(--s1); border: 1px solid rgba(184, 242, 92, 0.25); }
+
+/* Cuadre de caja del cobrador */
+.cuadre-box { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 14px 16px; border-radius: var(--r-md); background: var(--lime); color: var(--lime-ink); }
+.cuadre-box div { display: grid; gap: 2px; }
+.cuadre-box span { font-size: var(--t-xs); font-weight: 600; opacity: 0.75; }
+.cuadre-box b { font-size: var(--t-lg); }
+.form-section, .cuadre-box > div { min-width: 0; }
+
+/* Detalle del cobrador (admin) */
+.goal-bar { display: block; height: 8px; border-radius: 99px; background: var(--s3); overflow: hidden; }
+.goal-bar span { display: block; height: 100%; background: var(--lime); transform-origin: left; transition: transform 0.6s ease; }
+.collector-manage { max-width: 760px; }

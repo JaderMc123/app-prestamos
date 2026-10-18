@@ -108,7 +108,7 @@
 .inline-form { display: flex; gap: 10px; align-items: flex-end; }
 .inline-form .field { flex: 1; min-width: 0; }
 
-.field { display: grid; gap: 7px; }
+.field { display: grid; gap: 7px; grid-template-columns: minmax(0, 1fr); }
 .field-label { font-size: var(--t-sm); color: var(--tx2); font-weight: 600; }
 .field-box {
   position: relative;
@@ -240,6 +240,8 @@ select.field-input option { background: var(--s1); }
 .weekdays { display: flex; gap: 6px; }
 .weekday {
   flex: 1;
+  min-width: 0;
+  padding: 0;
   max-width: 48px;
   aspect-ratio: 1;
   border-radius: 50%;

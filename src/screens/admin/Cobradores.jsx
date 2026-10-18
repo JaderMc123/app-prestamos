@@ -13,9 +13,10 @@ import { Icon } from '../../components/Icon.jsx';
 import { toast } from '../../components/Toast.jsx';
 import { suggestPassword } from '../../lib/password.js';
 import { adminSheets } from './sheets.js';
+import { navigate } from '../../lib/router.jsx';
 
 // Acá el administrador crea cobradores, les cambia la contraseña, los activa/desactiva y les asigna capital
-const fetchCollectors = () =>
+export const fetchCollectors = () =>
   q(
     supabase
       .from('profiles')
@@ -128,13 +129,23 @@ function NewCollectorSheet({ open, onClose }) {
   );
 }
 
-function CollectorSheet({ collector, onClose }) {
+export function CollectorManage({ collector, part = 'all' }) {
+  const caja = part !== 'config';
+  const config = part !== 'caja';
   const [days, setDays] = useState(collector?.collection_schedules?.weekdays || [1, 2, 3, 4, 5, 6]);
   const [seeAll, setSeeAll] = useState(!!collector?.can_view_total_capital);
   const [active, setActive] = useState(!!collector?.is_active);
   const [capital, setCapital] = useState('');
   const [newPass, setNewPass] = useState('');
   const [busy, setBusy] = useState('');
+  const [counted, setCounted] = useState('');
+  const [handed, setHanded] = useState('');
+  const [adjust, setAdjust] = useState(true);
+  const overview = useQuery(collector ? 'admin:overview' : null, () => rpc('admin_overview'), { persist: true });
+  const summary = useQuery(collector ? 'admin:summary' : null, () => rpc('get_capital_summary'), { persist: true });
+  const live = (overview.data?.collectors || []).find((c) => c.id === collector?.id);
+  const expected = Number(live?.cash ?? 0);
+  const myCash = Number(summary.data?.tesoreria ?? 0);
 
   useEffect(() => {
     if (!collector) return;
@@ -143,6 +154,9 @@ function CollectorSheet({ collector, onClose }) {
     setActive(!!collector.is_active);
     setCapital('');
     setNewPass('');
+    setCounted('');
+    setHanded('');
+    setAdjust(true);
   }, [collector?.id]);
 
   const guard = () => {
@@ -169,13 +183,30 @@ function CollectorSheet({ collector, onClose }) {
 
   if (!collector) return null;
   const amount = parseCop(capital);
+  // Cuadre: lo que el cobrador cuenta y lo que te entrega (eso entra a tu caja)
+  const countedV = counted === '' ? expected : parseCop(counted);
+  const handedV = handed === '' ? countedV : parseCop(handed);
+  const diff = countedV - expected;
+
+  const closeCash = () =>
+    run(
+      'cuadre',
+      () => rpc('close_cash', { p_collector_id: collector.id, p_cash_reported: countedV, p_cash_handed_over: handedV, p_apply_adjustment: diff !== 0 && adjust }),
+      handedV > 0 ? `Cuadre cerrado. Recibiste ${cop(handedV)} en tu caja` : 'Cuadre cerrado'
+    ).then((done) => {
+      if (done) {
+        setCounted('');
+        setHanded('');
+      }
+    });
 
   return (
-    <Sheet open={!!collector} onClose={onClose} title={collector.full_name} subtitle={`Usuario ${collector.username}`}>
-      <div class="form">
+    <div class="form collector-manage">
+      {caja && (
+        <>
         <section class="form-section" data-enter>
           <h3>Asignar capital</h3>
-          <p class="muted">Pasa dinero de tu caja a la caja de este cobrador.</p>
+          <p class="muted">Sale de tu caja ({cop(myCash)}) y pasa a la caja de este cobrador.</p>
           <div class="inline-form">
             <Field label="Monto" inputMode="numeric" value={amount ? amount.toLocaleString('es-CO') : ''} onInput={(e) => setCapital(e.currentTarget.value)} prefix="$" />
             <Button
@@ -191,6 +222,37 @@ function CollectorSheet({ collector, onClose }) {
         </section>
 
         <section class="form-section" data-enter>
+          <h3>Cuadre de caja</h3>
+          <div class="cuadre-box">
+            <div><span>Debe tener en efectivo</span><b class="num">{cop(expected)}</b></div>
+            <div><span>Cobró hoy</span><b class="num">{cop(live?.collected_today || 0)}</b></div>
+          </div>
+          <div class="form-row">
+            <Field label="Efectivo que contó" inputMode="numeric" prefix="$" value={counted === '' ? '' : countedV.toLocaleString('es-CO')} placeholder={expected.toLocaleString('es-CO')} onInput={(e) => setCounted(e.currentTarget.value)} />
+            <Field label="Te entrega a ti" inputMode="numeric" prefix="$" value={handed === '' ? '' : handedV.toLocaleString('es-CO')} placeholder={countedV.toLocaleString('es-CO')} onInput={(e) => setHanded(e.currentTarget.value)} hint="Este dinero entra a tu caja. Si lo dejas vacío, entrega todo." />
+          </div>
+          {diff !== 0 && (
+            <Switch
+              label={diff < 0 ? `Faltan ${cop(-diff)}` : `Sobran ${cop(diff)}`}
+              hint="Registrar la diferencia para que la caja del cobrador quede igual a lo que contó."
+              checked={adjust}
+              onChange={setAdjust}
+            />
+          )}
+          {handedV > countedV && <p class="field-error">No puede entregarte más de lo que contó.</p>}
+          <p class="example">
+            Tu caja queda en <b class="num">{cop(myCash + handedV)}</b> y el cobrador se queda con <b class="num">{cop(Math.max(0, (diff !== 0 && adjust ? countedV : expected) - handedV))}</b>.
+          </p>
+          <Button loading={busy === 'cuadre'} disabled={handedV > countedV || countedV < 0} onClick={closeCash} icon="check">Cerrar cuadre</Button>
+        </section>
+        </>
+      )}
+
+      {config && (
+        <>
+
+        <section class="form-section" data-enter>
+          <h3>Días laborales</h3>
           <Weekdays value={days} onChange={setDays} />
           <Button variant="ghost" size="sm" loading={busy === 'days'} disabled={!days.length} onClick={() => run('days', () => q(supabase.from('collection_schedules').update({ weekdays: days }).eq('collector_id', collector.id)), 'Días de cobro guardados')}>
             Guardar días
@@ -233,15 +295,15 @@ function CollectorSheet({ collector, onClose }) {
           </div>
           <button type="button" class="link-btn" onClick={() => setNewPass(suggestPassword())}>Sugerir una contraseña</button>
         </section>
-      </div>
-    </Sheet>
+        </>
+      )}
+    </div>
   );
 }
 
 export function Cobradores() {
   const newOpen = useStore(adminSheets, (s) => s.newCollector);
   const setNewOpen = (v) => adminSheets.set({ newCollector: v });
-  const [selected, setSelected] = useState(null);
   const list = useQuery('admin:collectors', fetchCollectors, { persist: true });
   const overview = useQuery('admin:overview', () => rpc('admin_overview'), { persist: true });
   const stats = new Map((overview.data?.collectors || []).map((c) => [c.id, c]));
@@ -262,7 +324,7 @@ export function Cobradores() {
           {list.data.map((c) => {
             const st = stats.get(c.id);
             return (
-              <button type="button" class={`person-card ${c.is_active ? '' : 'is-off'}`} onClick={() => setSelected(c)} data-enter>
+              <button type="button" class={`person-card ${c.is_active ? '' : 'is-off'}`} onClick={() => navigate(`/cobradores/${c.id}`)} data-enter>
                 <div class="person-top">
                   <Avatar name={c.full_name} tone={c.is_active ? 'lime' : 'dark'} size={48} />
                   <span class={`tag ${c.is_active ? 'tag-ok' : 'tag-off'}`}>{c.is_active ? 'Activo' : 'Inactivo'}</span>
@@ -280,7 +342,6 @@ export function Cobradores() {
         </div>
       )}
       <NewCollectorSheet open={newOpen} onClose={() => setNewOpen(false)} />
-      <CollectorSheet collector={selected} onClose={() => setSelected(null)} />
     </>
   );
 }
