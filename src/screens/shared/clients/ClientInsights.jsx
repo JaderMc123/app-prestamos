@@ -47,7 +47,7 @@ export function ScoreCard({ ins, error, onRetry }) {
         <div><span>Paga a tiempo</span><b class="num">{pct(ins.punctuality)}</b></div>
         <div><span>Atraso promedio</span><b class="num">{ins.lateCount ? `${ins.avgLate} día${ins.avgLate === 1 ? '' : 's'}` : '0'}</b></div>
         <div><span>Préstamos</span><b class="num">{ins.loans}{ins.finished ? ` (${ins.finished} pagados)` : ''}</b></div>
-        <div><span>Cayó en mora</span><b class="num">{ins.moraLoans ? `${ins.moraLoans} vez${ins.moraLoans === 1 ? '' : 'es'}` : 'Nunca'}</b></div>
+        <div><span>Cayó en mora</span><b class="num">{ins.moraLoans ? `${ins.moraLoans} ${ins.moraLoans === 1 ? 'vez' : 'veces'}` : 'Nunca'}</b></div>
         <div><span>Ganancia que dejó</span><b class="num">{cop(ins.profit)}</b></div>
         <div><span>Total pagado</span><b class="num">{cop(ins.paidTotal)}</b></div>
       </div>
@@ -169,7 +169,7 @@ export function Ranking({ clients, insights, loading, error, onRetry, onSelect }
                     ) : seg === 'tarde' ? (
                       <span>A tiempo {pct(i.punctuality)} · atraso promedio {i.avgLate} día{i.avgLate === 1 ? '' : 's'}</span>
                     ) : seg === 'riesgo' ? (
-                      <span>{i.inMora ? 'En mora ahora · ' : ''}{i.moraLoans ? `Cayó en mora ${i.moraLoans} vez${i.moraLoans === 1 ? '' : 'es'}` : `A tiempo ${pct(i.punctuality)}`}</span>
+                      <span>{i.inMora ? 'En mora ahora · ' : ''}{i.moraLoans ? `Cayó en mora ${i.moraLoans} ${i.moraLoans === 1 ? 'vez' : 'veces'}` : `A tiempo ${pct(i.punctuality)}`}</span>
                     ) : (
                       <span>{i.offer ? <b class="ready">Listo para otro préstamo</b> : `Va en ${pct(i.progress)}`} · a tiempo {pct(i.punctuality)}</span>
                     )}
