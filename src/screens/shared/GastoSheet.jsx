@@ -26,7 +26,9 @@ export const EXPENSE_CATEGORIES = [
   { value: 'Papelería', icon: 'file', hint: 'Impresiones, talonarios' },
   { value: 'Otro', icon: 'more', hint: 'Cualquier otro gasto' }
 ];
-export const categoryOf = (name) => EXPENSE_CATEGORIES.find((c) => c.value === name || (name === 'Moto' && c.value === 'Mecánico') || (name === 'Llanta' && c.value === 'Repuestos')) || EXPENSE_CATEGORIES[EXPENSE_CATEGORIES.length - 1];
+const SALARY_CAT = { value: 'Sueldo', icon: 'users', hint: 'Pago al cobrador' };
+export const categoryOf = (name) =>
+  name === 'Sueldo' ? SALARY_CAT : EXPENSE_CATEGORIES.find((c) => c.value === name || (name === 'Moto' && c.value === 'Mecánico') || (name === 'Llanta' && c.value === 'Repuestos')) || EXPENSE_CATEGORIES[EXPENSE_CATEGORIES.length - 1];
 
 export function GastoSheet({ open, onClose }) {
   const ctx = useStore(session, (s) => s.ctx);

@@ -27,7 +27,7 @@ const KINDS = [
   { value: 'prestamo', label: 'Préstamos' },
   { value: 'gasto', label: 'Gastos' }
 ];
-const CONCEPT = { cuota: 'Cobro', papeleria: 'Papelería', renovacion: 'Renovación', saldo_anterior: 'Saldo anterior' };
+const CONCEPT = { cuota: 'Cobro', papeleria: 'Papelería del cobrador', renovacion: 'Renovación', saldo_anterior: 'Saldo anterior' };
 
 const since = (days) => addDays(todayISO(), -Number(days)) + 'T00:00:00-05:00';
 
@@ -246,7 +246,7 @@ export function Movimientos({ params }) {
     const t = { cobrado: 0, capital: 0, cuadres: 0, gastos: 0 };
     for (const i of timeline) {
       if (i.off) continue;
-      if (i.kind === 'cobro') t.cobrado += i.amount;
+      if (i.kind === 'cobro' && i.raw?.concept !== 'papeleria') t.cobrado += i.amount;
       // Capital que el admin le dio al cobrador (visto desde cada lado)
       if (i.kind === 'capital' && i.receipt && (isAdmin ? /^Entregaste/.test(i.title) : i.sign > 0)) t.capital += i.amount;
       if (i.kind === 'cuadre') t.cuadres += i.amount;

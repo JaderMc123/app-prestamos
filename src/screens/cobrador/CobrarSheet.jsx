@@ -173,7 +173,7 @@ export function CobrarSheet({ open, onClose, items = [], preset }) {
             <div class="paperwork-card" data-enter>
               <span class="muted">Papelería (cobro único)</span>
               <b class="num">{cop(loan.paperwork)}</b>
-              <span class="field-hint">Se cobra una sola vez y no se suma a las cuotas.</span>
+              <span class="field-hint">Se cobra una sola vez. Es tuya: no se suma a las cuotas ni a lo que entregas en el cuadre.</span>
             </div>
           )}
 

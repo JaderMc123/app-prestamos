@@ -37,7 +37,9 @@ export async function fetchRoute(userId) {
   let collectedToday = 0;
   let pendingTransfers = 0;
   for (const p of paidToday) {
-    if (p.concept !== 'papeleria') paidMap.set(p.loan_id, (paidMap.get(p.loan_id) || 0) + Number(p.amount));
+    // La papelería es del cobrador: no cuenta como cobro de la ruta
+    if (p.concept === 'papeleria') continue;
+    paidMap.set(p.loan_id, (paidMap.get(p.loan_id) || 0) + Number(p.amount));
     collectedToday += Number(p.amount);
     if (p.verification_status === 'pendiente') pendingTransfers++;
   }

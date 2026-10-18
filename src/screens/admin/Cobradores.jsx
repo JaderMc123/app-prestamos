@@ -8,7 +8,8 @@ import { cop, parseCop } from '../../lib/money.js';
 import { WEEKDAYS, timeAgo, todayISO } from '../../lib/dates.js';
 import { PageHeader } from '../../components/Shell.jsx';
 import { Sheet } from '../../components/Sheet.jsx';
-import { Avatar, Button, Empty, ErrorState, Field, PasswordField, Skeleton, Switch } from '../../components/ui.jsx';
+import { Avatar, Button, Empty, ErrorState, Field, PasswordField, Pills, Skeleton, Switch } from '../../components/ui.jsx';
+import { SALARY_FREQ, fetchSalaries, saveSalary } from '../shared/sueldos.js';
 import { Icon } from '../../components/Icon.jsx';
 import { toast } from '../../components/Toast.jsx';
 import { suggestPassword } from '../../lib/password.js';
@@ -126,6 +127,51 @@ function NewCollectorSheet({ open, onClose }) {
         </form>
       )}
     </Sheet>
+  );
+}
+
+// Sueldo del cobrador: valor y cada cuánto se le paga (aparece en Gastos operativos para pagarlo)
+function SalarySection({ collector }) {
+  const ctx = useStore(session, (s) => s.ctx);
+  const salaries = useQuery('admin:salaries', fetchSalaries);
+  const current = (salaries.data || []).find((x) => x.collector_id === collector.id);
+  const [amount, setAmount] = useState('');
+  const [freq, setFreq] = useState('quincenal');
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (current) {
+      setAmount(String(Math.round(current.amount)));
+      setFreq(current.frequency);
+    }
+  }, [current?.id, current?.amount, current?.frequency]);
+  const value = parseCop(amount);
+  const save = async () => {
+    if (!canWrite()) return toast('La app está en modo solo lectura hasta que se pague la suscripción.', 'error');
+    setBusy(true);
+    try {
+      await saveSalary(ctx.organization.id, collector.id, value, freq);
+      toast(value ? `Sueldo guardado: ${cop(value)} ${SALARY_FREQ.find((f) => f.value === freq).label.toLowerCase()}` : 'Sueldo quitado');
+      invalidate('admin:salaries');
+      invalidate('expenses:');
+    } catch (err) {
+      toast(message(err), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <section class="form-section" data-enter>
+      <h3>Sueldo</h3>
+      <p class="muted">Cuánto le pagas y cada cuánto. Lo pagas desde Gastos operativos y queda como gasto de la ruta.</p>
+      <Pills label="Cada cuánto se paga" value={freq} onChange={setFreq} options={SALARY_FREQ} />
+      <div class="inline-form">
+        <Field label={`Sueldo ${SALARY_FREQ.find((f) => f.value === freq).label.toLowerCase()}`} inputMode="numeric" prefix="$" value={value ? value.toLocaleString('es-CO') : ''} onInput={(e) => setAmount(e.currentTarget.value)} placeholder="0" />
+        <Button loading={busy} onClick={save}>Guardar</Button>
+      </div>
+      {freq !== 'mensual' && value > 0 && (
+        <p class="field-hint">Al mes son unos {cop(freq === 'diario' ? value * 26 : value * 2)}{freq === 'diario' ? ' (26 días de trabajo)' : ''}.</p>
+      )}
+    </section>
   );
 }
 
@@ -294,6 +340,8 @@ export function CollectorManage({ collector, part = 'all' }) {
 
       {config && (
         <>
+
+        <SalarySection collector={collector} />
 
         <section class="form-section" data-enter>
           <h3>Días laborales</h3>

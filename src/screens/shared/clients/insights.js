@@ -92,7 +92,6 @@ export function scoreClient(loans = [], blocked = false) {
     if (l.was_overdue || l.status === 'en_mora') moraLoans++;
     if (l.status === 'en_mora') inMora = true;
     if (l.status === 'pagado' || l.status === 'renovado') finished++;
-    if (l.paperwork_status === 'descontada') profit += Number(l.paperwork_fee || 0);
 
     // Fecha en que quedó pagada cada cuota (por el último abono que la cubrió)
     const paidOn = new Map();
@@ -100,9 +99,8 @@ export function scoreClient(loans = [], blocked = false) {
     for (const p of l.payments || []) {
       payments.push({ ...p, loan_id: l.id, loan_principal: l.principal });
       if (p.is_reversed || p.verification_status === 'rechazado') continue;
-      if (p.concept !== 'renovacion') paidTotal += Number(p.amount);
+      if (p.concept !== 'renovacion' && p.concept !== 'papeleria') paidTotal += Number(p.amount);
       if (p.concept !== 'saldo_anterior' && p.concept !== 'renovacion' && (!lastPayment || p.paid_at > lastPayment)) lastPayment = p.paid_at;
-      if (p.concept === 'papeleria') profit += Number(p.amount);
       const d = day(p.paid_at);
       for (const a of p.payment_allocations || []) {
         if (p.concept !== 'saldo_anterior') profit += Number(a.interest_part) + Number(a.paperwork_part) + Number(a.late_fee_part);

@@ -181,7 +181,7 @@ export function LoanForm({ clientId, clientName, info, onDone }) {
             <Field label="Valor de la papelería" inputMode="numeric" prefix="$" value={paperwork ? paperwork.toLocaleString('es-CO') : ''} onInput={(e) => setFee(e.currentTarget.value)} />
             <Switch
               label="Descontarla de lo que se entrega"
-              hint={deduct ? `Se entregan ${cop(Math.max(0, handed))} y la papelería queda pagada.` : 'La cobras cuando quieras desde el panel de cobro.'}
+              hint={deduct ? `Se entregan ${cop(Math.max(0, handed))} al cliente y la papelería (${cop(paperwork)}) te queda a ti.` : 'La cobras cuando quieras desde el panel de cobro. La papelería es del cobrador.'}
               checked={deduct}
               onChange={setDeduct}
             />

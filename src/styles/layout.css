@@ -576,3 +576,8 @@
 .cash-break span { color: var(--tx2); }
 .cash-break-total { padding-top: 8px; margin-top: 2px; border-top: 1px solid var(--s3); }
 .cash-break-total span, .cash-break-total b { color: var(--tx); font-weight: 700; }
+
+/* Sueldos en gastos operativos */
+.salary-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.salary-head > div { display: grid; gap: 2px; }
+.salary-head b { font-size: var(--t-lg); font-weight: 800; }

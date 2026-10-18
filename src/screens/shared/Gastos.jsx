@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { useStore } from '../../lib/store.js';
 import { session } from '../../lib/session.js';
 import { supabase } from '../../lib/supabase.js';
@@ -12,6 +12,15 @@ import { Sheet } from '../../components/Sheet.jsx';
 import { Button, Empty, ErrorState, Pills, Select, Skeleton } from '../../components/ui.jsx';
 import { Icon } from '../../components/Icon.jsx';
 import { categoryOf, GastoSheet } from './GastoSheet.jsx';
+import { SALARY_FREQ, fetchSalaries, fetchSalaryPayments, salaryPeriod } from './sueldos.js';
+import { send, uuid } from '../../lib/outbox.js';
+import { canWrite } from '../../lib/session.js';
+import { message } from '../../lib/api.js';
+import { invalidate } from '../../lib/query.js';
+import { parseCop } from '../../lib/money.js';
+import { Field } from '../../components/ui.jsx';
+import { toast } from '../../components/Toast.jsx';
+import { Link } from '../../lib/router.jsx';
 
 // Acá se ven los gastos operativos: cuánto se fue en gasolina, mecánico, imprevistos... por periodo y por cobrador
 const PERIODS = [
@@ -56,6 +65,105 @@ function ReceiptPhoto({ path }) {
     <a href={url.data} target="_blank" rel="noopener" class="receipt-photo">
       <img src={url.data} alt="Recibo del gasto" />
     </a>
+  );
+}
+
+// Sueldos de los cobradores: cuánto toca pagar en el periodo y botón para pagarlo
+function PaySalarySheet({ item, onClose }) {
+  const ctx = useStore(session, (s) => s.ctx);
+  const me = useStore(session, (s) => s.user?.id);
+  const [amount, setAmount] = useState('');
+  const [from, setFrom] = useState('admin');
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    setAmount('');
+    setFrom('admin');
+  }, [item?.id]);
+  if (!item) return null;
+  const value = amount === '' ? item.pending : parseCop(amount);
+  const pay = async () => {
+    if (!canWrite()) return toast('La app está en modo solo lectura hasta que se pague la suscripción.', 'error');
+    if (value <= 0) return toast('Escribe el valor a pagar.', 'error');
+    setBusy(true);
+    try {
+      await send('insert_expense', {
+        organization_id: ctx.organization.id,
+        collector_id: item.collector_id,
+        created_by: me,
+        fixed_cost_id: item.id,
+        kind: from === 'cobrador' ? 'eventual_cobrador' : 'fijo_admin',
+        category: 'Sueldo',
+        description: `Sueldo ${item.period.label} de ${item.collector?.full_name || 'cobrador'}`,
+        amount: value,
+        expense_date: todayISO(),
+        client_uuid: uuid()
+      });
+      toast(`Sueldo pagado: ${cop(value)}`);
+      invalidate('expenses:');
+      invalidate('admin:');
+      onClose();
+    } catch (err) {
+      toast(message(err), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Sheet open={!!item} onClose={onClose} title={`Pagar sueldo a ${item.collector?.full_name || 'cobrador'}`} subtitle={`Periodo ${item.period.label}`}>
+      <div class="form">
+        <div data-enter>
+          <Field label="Valor a pagar" inputMode="numeric" prefix="$" value={value ? value.toLocaleString('es-CO') : ''} onInput={(e) => setAmount(e.currentTarget.value)} hint={item.paid > 0 ? `Ya le pagaste ${cop(item.paid)} de ${cop(item.amount)} en este periodo.` : `Su sueldo es ${cop(item.amount)} ${SALARY_FREQ.find((f) => f.value === item.frequency)?.label.toLowerCase()}.`} />
+        </div>
+        <div data-enter>
+          <span class="field-label">¿De dónde sale la plata?</span>
+          <Pills label="De dónde sale" value={from} onChange={setFrom} options={[{ value: 'admin', label: 'De mi caja' }, { value: 'cobrador', label: 'Lo toma de lo que cobró' }]} />
+          <p class="field-hint">{from === 'cobrador' ? 'Se descuenta de la caja del cobrador: en el cuadre te entrega menos.' : 'Se descuenta de tu caja.'}</p>
+        </div>
+        <Button size="lg" class="btn-block" icon="check" loading={busy} onClick={pay}>Pagar {cop(value)}</Button>
+      </div>
+    </Sheet>
+  );
+}
+
+function SueldosCard() {
+  const salaries = useQuery('admin:salaries', fetchSalaries);
+  const payments = useQuery('expenses:salary-payments', fetchSalaryPayments);
+  const [paying, setPaying] = useState(null);
+  const rows = (salaries.data || []).map((x) => {
+    const period = salaryPeriod(x.frequency);
+    const paid = (payments.data || []).filter((p) => p.fixed_cost_id === x.id && p.expense_date >= period.from && p.expense_date <= period.to).reduce((s, p) => s + Number(p.amount), 0);
+    return { ...x, period, paid, pending: Math.max(0, Number(x.amount) - paid) };
+  });
+  const pendingTotal = rows.reduce((s, r) => s + r.pending, 0);
+  return (
+    <section class="expense-summary" data-enter>
+      <div class="salary-head">
+        <div>
+          <span class="muted">Sueldos de cobradores</span>
+          <b class="num">{pendingTotal > 0 ? `${cop(pendingTotal)} por pagar` : rows.length ? 'Al día' : 'Sin sueldos'}</b>
+        </div>
+        <Link href="/cobradores" class="link-btn">Configurar</Link>
+      </div>
+      {salaries.loading && !salaries.data ? (
+        <Skeleton h={48} r={14} />
+      ) : !rows.length ? (
+        <p class="muted">Pon el sueldo de cada cobrador en Cobradores → su nombre → Configuración.</p>
+      ) : (
+        <div class="list-card list-flat">
+          {rows.map((r) => (
+            <div class="row">
+              <span class={`row-icon ${r.pending > 0 ? 'tone-bg-amber' : 'tone-bg-lime'}`}><Icon name={r.pending > 0 ? 'calendar' : 'check'} size={17} /></span>
+              <div class="row-main">
+                <span class="row-title">{r.collector?.full_name || 'Cobrador'}</span>
+                <span class="row-sub">{cop(r.amount)} {SALARY_FREQ.find((f) => f.value === r.frequency)?.label.toLowerCase()} · {r.pending > 0 ? `falta ${cop(r.pending)} ${r.period.label}` : `pagado ${r.period.label}`}</span>
+              </div>
+              {r.pending > 0 ? <Button size="sm" onClick={() => setPaying(r)}>Pagar</Button> : <span class="tag tag-lime">Pagado</span>}
+            </div>
+          ))}
+        </div>
+      )}
+      <PaySalarySheet item={paying} onClose={() => setPaying(null)} />
+    </section>
   );
 }
 
@@ -119,6 +227,8 @@ export function Gastos() {
           </Select>
         )}
       </div>
+
+      {isAdmin && <SueldosCard />}
 
       <section class="expense-summary" data-enter>
         <div class="expense-total">
