@@ -4,7 +4,7 @@ import { session, canWrite } from '../../../lib/session.js';
 import { rpc, message } from '../../../lib/api.js';
 import { invalidate } from '../../../lib/query.js';
 import { cop } from '../../../lib/money.js';
-import { fmtDate } from '../../../lib/dates.js';
+import { fmtDate, todayISO } from '../../../lib/dates.js';
 import { googleMapsUrl, wazeUrl } from '../../../lib/geo.js';
 import { signedUrl } from '../../../lib/images.js';
 import { Sheet } from '../../../components/Sheet.jsx';
@@ -121,7 +121,7 @@ export function ClientDetail({ client, ins: insFromList, blockedByMe, onClose, o
             <button type="button" class="quick" onClick={() => onEdit(client)}><Icon name="settings" size={20} /><span>Editar</span></button>
           </div>
 
-          <div data-enter>
+          <div class="tabs-even" data-enter>
             <Pills
               label="Ficha del cliente"
               value={tab}
@@ -171,12 +171,32 @@ export function ClientDetail({ client, ins: insFromList, blockedByMe, onClose, o
           {client.activeLoans?.length > 0 && (
             <section class="form-section" data-enter>
               <h3>Préstamos activos</h3>
-              {client.activeLoans.map((l) => (
-                <div class="row">
-                  <div class="row-main"><span class="row-title num">{cop(l.principal)}</span><span class="row-sub">{FREQUENCIES[l.frequency || 'diario'].cuota} {cop(l.daily_payment)}, vence {fmtDate(l.due_date)}{l.paperwork_status === 'pendiente' ? `, papelería ${cop(l.paperwork_fee)} por cobrar` : ''}</span></div>
-                  <span class={`tag ${l.status === 'en_mora' ? 'tag-coral' : 'tag-lime'}`}>{l.status === 'en_mora' ? 'En mora' : 'Activo'}</span>
-                </div>
-              ))}
+              {client.activeLoans.map((l) => {
+                // Lo que le falta pagar de este préstamo
+                const inst = l.loan_installments || [];
+                const total = inst.reduce((s, i) => s + Number(i.amount_due), 0);
+                const paid = inst.reduce((s, i) => s + Number(i.amount_paid), 0);
+                const today = todayISO();
+                const pending = inst.filter((i) => Number(i.amount_paid) < Number(i.amount_due) - 0.5);
+                const late = pending.filter((i) => i.due_date < today);
+                const lateAmount = late.reduce((s, i) => s + Number(i.amount_due) - Number(i.amount_paid), 0);
+                const next = pending.filter((i) => i.due_date >= today).sort((a, b) => (a.due_date < b.due_date ? -1 : 1))[0];
+                return (
+                  <div class="loan-left">
+                    <div class="row">
+                      <div class="row-main"><span class="row-title num">{cop(l.principal)}</span><span class="row-sub">{FREQUENCIES[l.frequency || 'diario'].cuota} {cop(l.daily_payment)}, vence {fmtDate(l.due_date)}{l.paperwork_status === 'pendiente' ? `, papelería ${cop(l.paperwork_fee)} por cobrar` : ''}</span></div>
+                      <span class={`tag ${l.status === 'en_mora' ? 'tag-coral' : 'tag-lime'}`}>{l.status === 'en_mora' ? 'En mora' : 'Activo'}</span>
+                    </div>
+                    <span class="goal-bar" aria-hidden="true"><span style={{ transform: `scaleX(${total ? paid / total : 0})` }} /></span>
+                    <div class="loan-left-grid">
+                      <div><span>Pagado</span><b class="num">{cop(paid)}</b></div>
+                      <div><span>Falta pagar</span><b class="num">{cop(total - paid)}</b></div>
+                      <div><span>Cuotas pendientes</span><b class="num">{pending.length}</b></div>
+                      <div><span>{late.length ? 'Atrasado' : 'Próxima cuota'}</span><b class={`num ${late.length ? 'text-coral' : ''}`}>{late.length ? `${cop(lateAmount)} (${late.length})` : next ? fmtDate(next.due_date) : '—'}</b></div>
+                    </div>
+                  </div>
+                );
+              })}
             </section>
           )}
 

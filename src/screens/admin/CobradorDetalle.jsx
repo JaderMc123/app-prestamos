@@ -11,6 +11,11 @@ import { Icon } from '../../components/Icon.jsx';
 import { RouteRow, RouteSkeleton } from '../cobrador/RouteList.jsx';
 import { fetchRoute } from '../cobrador/data.js';
 import { CollectorManage, fetchCollectors } from './Cobradores.jsx';
+import { useStore } from '../../lib/store.js';
+import { session } from '../../lib/session.js';
+import { fetchClients } from '../shared/clients/data.js';
+import { ClientDetail } from '../shared/clients/ClientDetail.jsx';
+import { clientSheets } from '../shared/clients/sheets.js';
 
 // Acá el admin ve todo de un cobrador: lo recaudado hoy, quién pagó, quién falta, su caja y su configuración
 const PENDING = ['mora', 'atrasado', 'hoy', 'vence'];
@@ -22,6 +27,14 @@ export function CobradorDetalle({ params }) {
   const route = useQuery(`admin:route:${id}`, () => fetchRoute(id));
   const [tab, setTab] = useState('clientes');
   const [filter, setFilter] = useState('pendientes');
+  const [selected, setSelected] = useState(null);
+  // Ficha completa del cliente (la misma de Clientes) al tocarlo en la lista del cobrador
+  const me = useStore(session, (s) => s.user?.id);
+  const clients = useQuery(`clients:${me}`, fetchClients, { persist: true });
+  const openClient = (item) => {
+    const full = (clients.data || []).find((c) => c.id === item.client.id);
+    setSelected(full || { ...item.client, state: item.state === 'mora' ? 'mora' : item.state === 'atrasado' ? 'atrasado' : 'aldia', balance: item.balance, loans: [], activeLoans: [] });
+  };
 
   const collector = (list.data || []).find((c) => c.id === id);
   const live = (overview.data?.collectors || []).find((c) => c.id === id);
@@ -121,7 +134,7 @@ export function CobradorDetalle({ params }) {
               </Empty>
             ) : (
               <div class="route-list">
-                {shown.map((i) => <RouteRow item={i} onClick={() => {}} key={i.id} />)}
+                {shown.map((i) => <RouteRow item={i} onClick={openClient} key={i.id} />)}
               </div>
             )}
           </section>
@@ -129,6 +142,14 @@ export function CobradorDetalle({ params }) {
       )}
 
       {tab === 'caja' && <Link href={`/movimientos/${id}`} class="hero-link" data-enter><Icon name="logs" size={16} /> Ver todos sus movimientos y cuadres</Link>}
+      <ClientDetail
+        client={selected}
+        onClose={() => setSelected(null)}
+        onEdit={(c) => {
+          setSelected(null);
+          clientSheets.set({ form: true, editing: c });
+        }}
+      />
       {tab !== 'clientes' && collector && <CollectorManage collector={collector} part={tab} key={tab} />}
     </>
   );
