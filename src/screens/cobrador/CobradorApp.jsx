@@ -6,6 +6,7 @@ import { AppShell } from '../../components/Shell.jsx';
 import { Notifications } from '../shared/Notifications.jsx';
 import { Profile } from '../shared/Profile.jsx';
 import { Movimientos } from '../shared/Movimientos.jsx';
+import { Gastos } from '../shared/Gastos.jsx';
 import { Clientes, ClientFormHost } from '../shared/clients/Clientes.jsx';
 import { CobrarSheet } from './CobrarSheet.jsx';
 import { GastoSheet } from './GastoSheet.jsx';
@@ -28,6 +29,7 @@ const ROUTES = [
   { path: '/ruta', view: Ruta },
   { path: '/clientes', view: Clientes },
   { path: '/movimientos', view: Movimientos },
+  { path: '/gastos', view: Gastos },
   { path: '/notificaciones', view: Notifications },
   { path: '/perfil', view: Profile }
 ];

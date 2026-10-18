@@ -76,8 +76,16 @@ export async function uploadClientPhotos(orgId, clientId, photos) {
   }
 }
 
-export async function signedUrl(path) {
+export async function signedUrl(path, bucket = 'client-documents') {
   if (!path) return null;
-  const { data } = await supabase.storage.from('client-documents').createSignedUrl(path, 600);
+  const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 600);
   return data?.signedUrl || null;
+}
+
+// Sube la foto del recibo de un gasto (carpeta de la ruta y de quien lo registra)
+export async function uploadReceipt(orgId, userId, blob) {
+  const path = `${orgId}/${userId}/gasto-${Date.now()}.jpg`;
+  const { error } = await supabase.storage.from('receipts').upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: false });
+  if (error) throw error;
+  return path;
 }

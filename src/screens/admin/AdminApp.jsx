@@ -8,6 +8,7 @@ import { Cobradores } from './Cobradores.jsx';
 import { Ajustes } from './Ajustes.jsx';
 import { Importar } from './Importar.jsx';
 import { Movimientos } from '../shared/Movimientos.jsx';
+import { Gastos } from '../shared/Gastos.jsx';
 import { CobradorDetalle } from './CobradorDetalle.jsx';
 import { openNewCollector } from './sheets.js';
 
@@ -18,6 +19,7 @@ const NAV = [
   { href: '/clientes', label: 'Clientes', icon: 'pin' },
   { href: '/ajustes', label: 'Ajustes', icon: 'settings' },
   { href: '/movimientos', label: 'Movimientos', icon: 'logs', mobile: false },
+  { href: '/gastos', label: 'Gastos', icon: 'cash', mobile: false },
   { href: '/importar', label: 'Importar Excel', icon: 'upload', mobile: false },
   { href: '/perfil', label: 'Perfil', icon: 'user', mobile: false }
 ];
@@ -30,6 +32,7 @@ const ROUTES = [
   { path: '/ajustes', view: Ajustes },
   { path: '/importar', view: Importar },
   { path: '/movimientos', view: Movimientos },
+  { path: '/gastos', view: Gastos },
   { path: '/movimientos/:collector', view: Movimientos },
   { path: '/notificaciones', view: Notifications },
   { path: '/perfil', view: Profile }

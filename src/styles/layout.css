@@ -532,3 +532,27 @@
 .receipt-amount b { font-size: 34px; font-weight: 800; color: var(--lime); }
 .receipt-lines .row { justify-content: space-between; }
 @media (min-width: 1024px) { .move-totals { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* Gastos operativos */
+.hero-links { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.cat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.cat-tile { display: grid; justify-items: center; gap: 6px; padding: 14px 6px; border-radius: var(--r-md); background: var(--s2); border: 1.5px solid transparent; font-size: 13px; font-weight: 600; color: var(--tx2); transition: background-color 0.2s, border-color 0.2s, color 0.2s; }
+.cat-tile .icon { color: var(--tx2); }
+.cat-tile.is-active { border-color: var(--lime); background: var(--s1); color: var(--tx); }
+.cat-tile.is-active .icon { color: var(--lime); }
+.expense-summary { display: grid; gap: 16px; padding: 18px; border-radius: var(--r-lg); background: var(--s1); }
+.expense-total { display: grid; gap: 2px; }
+.expense-total > span:first-child { font-size: var(--t-sm); color: var(--tx2); }
+.expense-total b { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; color: #ff9c8d; }
+.cat-bars { display: grid; gap: 4px; }
+.cat-bar { display: grid; grid-template-columns: minmax(0, 7.5rem) minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 8px; border-radius: var(--r-sm); text-align: left; }
+.cat-bar.is-active { background: var(--s2); }
+.cat-bar-label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat-bar-track { height: 8px; border-radius: 99px; background: var(--s3); overflow: hidden; }
+.cat-bar-track span { display: block; height: 100%; background: var(--coral); transform-origin: left; }
+.cat-bar b { font-size: 13px; }
+.who-list { display: grid; gap: 6px; padding-top: 12px; border-top: 1px solid var(--s3); }
+.who-list div { display: flex; justify-content: space-between; gap: 12px; font-size: var(--t-sm); }
+.who-list span { color: var(--tx2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.day-head { display: flex; justify-content: space-between; }
+.receipt-photo img { width: 100%; max-height: 420px; object-fit: contain; border-radius: var(--r-md); background: var(--s2); }

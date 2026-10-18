@@ -44,6 +44,7 @@ export function Home({ route }) {
             <ActionPill icon="plus" onClick={openNewClient}>Prestar</ActionPill>
             <ActionPill icon="cash" onClick={openGasto}>Gasto</ActionPill>
           </div>
+          <Link href="/gastos" class="hero-link"><Icon name="cash" size={16} /> Ver mis gastos</Link>
         </section>
 
         {failed.length > 0 && (

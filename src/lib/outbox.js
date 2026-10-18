@@ -1,4 +1,5 @@
-import { rpc, isOffline, logError } from './api.js';
+import { rpc, q, isOffline, logError } from './api.js';
+import { supabase } from './supabase.js';
 import { createStore } from './store.js';
 import { session } from './session.js';
 import { takePending, uploadClientPhotos } from './images.js';
@@ -54,9 +55,22 @@ export const uuid = () =>
 
 // Intenta enviar; si no hay señal, lo deja en cola. Devuelve { queued } para avisar al usuario
 // after: tarea a ejecutar cuando el envío funcione (por ejemplo, subir las fotos de un cliente nuevo)
+// Algunos registros se guardan directo en una tabla (ej. gastos); el código único evita duplicarlos al reintentar
+async function exec(fn, args) {
+  if (fn === 'insert_expense') {
+    try {
+      return await q(supabase.from('expenses').insert(args));
+    } catch (err) {
+      if (/duplicate|DUPLICADO/i.test(`${err.code} ${err.message}`)) return null;
+      throw err;
+    }
+  }
+  return rpc(fn, args);
+}
+
 export async function send(fn, args, after = null) {
   try {
-    const data = await rpc(fn, args);
+    const data = await exec(fn, args);
     return { data, queued: false };
   } catch (err) {
     if (!isOffline(err)) throw err;
@@ -84,7 +98,7 @@ export async function flush() {
       continue;
     }
     try {
-      const data = await rpc(item.fn, item.args);
+      const data = await exec(item.fn, item.args);
       if (item.after?.type === 'client-photos') {
         const photos = await takePending(item.after.key);
         if (photos) await uploadClientPhotos(item.after.orgId, data, photos);
